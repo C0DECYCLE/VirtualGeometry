@@ -49,7 +49,7 @@ const gpuTiming: GPUTiming = new GPUTiming(device);
 
 //////////// LOAD OBJ ////////////
 
-const suzanne: OBJParseResult = await loadOBJ("./resources/suzanne.obj");
+const geometry: OBJParseResult = await loadOBJ("./resources/bunny.obj");
 
 //////////// SETUP UNIFORM ////////////
 
@@ -63,7 +63,7 @@ const uniformBuffer: GPUBuffer = device.createBuffer({
 
 //////////// SETUP VERTICES ////////////
 
-const vertexData: Float32Array = suzanne.vertices;
+const vertexData: Float32Array = geometry.vertices;
 const vertexBuffer: GPUBuffer = device.createBuffer({
     label: "vertex buffer",
     size: vertexData.byteLength,
@@ -74,7 +74,7 @@ log("vertices", dotit(vertexData.length / 8));
 
 //////////// SETUP INDICES ////////////
 
-const indexData: Uint32Array = suzanne.indices!;
+const indexData: Uint32Array = geometry.indices!;
 const indexBuffer: GPUBuffer = device.createBuffer({
     label: "index buffer",
     size: indexData.byteLength,
@@ -102,7 +102,7 @@ log("instances", dotit(instanceCount));
 //////////// SETUP INDIRECTS ////////////
 
 const indirectData: Uint32Array = new Uint32Array([
-    suzanne.indicesCount!,
+    geometry.indicesCount!,
     instanceCount,
     0,
     0,
