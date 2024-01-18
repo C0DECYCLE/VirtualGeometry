@@ -1,0 +1,16 @@
+{
+    "name": "virtualgeometry",
+    "version": "0.0.1",
+    "type": "module",
+    "scripts": {
+        "build-macos": "clear && npx tsc",
+        "build-win32": "cls && npx tsc",
+        "browser-macos": "clear && open -a 'Google Chrome Canary' http://127.0.0.1:5500/",
+        "browser-win32": "cls && start chrome http://127.0.0.1:5500/"
+    },
+    "author": "Noah Mattia Bussinger",
+    "dependencies": {
+        "@webgpu/types": "^0.1.40",
+        "typescript": "^5.3.3"
+    }
+}
