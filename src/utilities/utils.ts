@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, October 2023
  */
 
-import { int, float, uuid } from "../../types/utilities/utils.type.js";
+import { int, float, uuid } from "../../types/utils.type.js";
 
 export const PHI: float = (1 + 5 ** 0.5) / 2;
 

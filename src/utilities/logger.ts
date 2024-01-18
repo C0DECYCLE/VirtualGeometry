@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, October 2023
  */
 
-import { int } from "../../types/utilities/utils.type.js";
+import { int } from "../../types/utils.type.js";
 
 export function log(...data: any[]): void {
     return logger("log", ...data);

@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, October 2023
  */
 
-import { int, float, FloatArray } from "../../types/utilities/utils.type.js";
+import { int, float, FloatArray } from "../../types/utils.type.js";
 import { Vec3 } from "./Vec3.js";
 
 export class Mat4 {

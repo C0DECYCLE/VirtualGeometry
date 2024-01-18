@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, October 2023
  */
 
-import { float, Undefinable, MapString } from "../utilities/utils.type.js";
+import { float, Undefinable, MapString } from "../../types/utils.type.js";
 
 export class Stats {
     private readonly list: MapString<float>;

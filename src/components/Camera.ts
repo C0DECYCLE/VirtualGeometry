@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, December 2023
  */
 
-import { float } from "../utilities/utils.type.js";
+import { float } from "../../types/utils.type.js";
 import { Mat4 } from "../utilities/Mat4.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { toRadian } from "../utilities/utils.js";

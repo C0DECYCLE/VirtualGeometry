@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, October 2023
  */
 
-import { float, MapString } from "../utilities/utils.type.js";
+import { float, MapString } from "../../types/utils.type.js";
 import { toRadian, clamp } from "../utilities/utils.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { Mat4 } from "../utilities/Mat4.js";

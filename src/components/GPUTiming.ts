@@ -3,8 +3,8 @@
  * Written by Noah Mattia Bussinger, December 2023
  */
 
-import { float, int } from "../utilities/utils.type.js";
-import { byteSize } from "../helper.js";
+import { float, int } from "../../types/utils.type.js";
+import { bytes4 } from "../helper.js";
 
 export class GPUTiming {
     private static readonly capacity: int = 2;
@@ -34,7 +34,7 @@ export class GPUTiming {
 
     private createBuffer(device: GPUDevice): GPUBuffer {
         return device.createBuffer({
-            size: GPUTiming.capacity * (byteSize * 2), //64bit
+            size: GPUTiming.capacity * (bytes4 * 2), //64bit
             usage:
                 GPUBufferUsage.QUERY_RESOLVE |
                 GPUBufferUsage.STORAGE |

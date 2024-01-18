@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, October 2023
  */
 
-import { int, float } from "./utils.type.js";
+import { int, float } from "../../types/utils.type.js";
 
 export class RollingAverage {
     private readonly sampleLength: int;

@@ -12,29 +12,33 @@ struct Vertex {
 };
 
 struct Instance {
-    position: vec3f
+    position: vec3f,
 };
 
 struct VertexShaderOut {
     @builtin(position) position: vec4f,
+    @interpolate(flat) @location(0) color: vec3f
 };
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(0) @binding(1) var<storage, read> vertecies: array<Vertex>;
-@group(0) @binding(2) var<storage, read> instances: array<Instance>;
+@group(0) @binding(1) var<storage, read> indices: array<u32>;
+@group(0) @binding(2) var<storage, read> vertecies: array<Vertex>;
+@group(0) @binding(3) var<storage, read> instances: array<Instance>;
 
 @vertex fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> VertexShaderOut {
-    let vertex: Vertex = vertecies[vertexIndex];
+    let index: u32 = indices[vertexIndex];
+    let vertex: Vertex = vertecies[index];
     let instance: Instance = instances[instanceIndex];
 
-    var position: vec3f = vertex.position;
-    position += instance.position;
+    let position: vec3f = vertex.position + instance.position;
     
     var out: VertexShaderOut;
     out.position = uniforms.viewProjection * vec4f(position, 1);
+    let unique: f32 = f32(vertexIndex);
+    out.color = fract(vec3f(unique * 0.1443, unique * 0.6841, unique * 0.7323));
     return out;
 }
 
 @fragment fn fs(in: VertexShaderOut) -> @location(0) vec4f {
-    return vec4f(1, 1, 1, 1);
+    return vec4f(in.color, 1);
 }

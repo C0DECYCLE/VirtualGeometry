@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, October 2023
  */
 
-import { int, float, Nullable } from "../utilities/utils.type.js";
+import { int, float, Nullable } from "../../types/utils.type.js";
 import { clear } from "../utilities/utils.js";
 import { Vec3 } from "../utilities/Vec3.js";
 

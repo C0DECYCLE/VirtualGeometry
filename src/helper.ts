@@ -3,11 +3,12 @@
  * Written by Noah Mattia Bussinger, December 2023
  */
 
-import { int } from "../../types/utilities/utils.type.js";
-import { OBJParseResult, OBJParser } from "../OBJParser.js";
-import { Vec3 } from "../utilities/Vec3.js";
+import { int } from "../types/utils.type.js";
+import { OBJParseResult, OBJParser } from "./components/OBJParser.js";
+import { Vec3 } from "./utilities/Vec3.js";
 
-export const byteSize: int = 4;
+export const bytes4: int = 4;
+export const vec3Layout: int = 3 + 1;
 
 export function createCanvas(): HTMLCanvasElement {
     const canvas: HTMLCanvasElement = document.createElement("canvas");
