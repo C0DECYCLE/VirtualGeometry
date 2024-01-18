@@ -8,6 +8,7 @@ import { clear } from "../utilities/utils.js";
 import { Vec3 } from "../utilities/Vec3.js";
 
 type OBJVertex = [float, float, float, float?, float?, float?];
+
 export type OBJParseResult = {
     vertices: Float32Array;
     verticesCount: int;
@@ -112,7 +113,11 @@ export class OBJParser {
 
     private registerVertex(vertex: OBJVertex): void {
         this.vertexCache.push(vertex[0], vertex[1], vertex[2], 0);
-        if (vertex[3] && vertex[4] && vertex[5]) {
+        if (
+            vertex[3] !== undefined &&
+            vertex[4] !== undefined &&
+            vertex[5] !== undefined
+        ) {
             this.vertexCache.push(vertex[3], vertex[4], vertex[5], 0);
         }
     }

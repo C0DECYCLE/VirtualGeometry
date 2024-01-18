@@ -19,7 +19,7 @@ export class Camera {
 
     public constructor(aspect: float, far: float) {
         this.view = new Mat4();
-        this.projection = Mat4.Perspective(60 * toRadian, aspect, 1, far);
+        this.projection = Mat4.Perspective(60 * toRadian, aspect, 0.1, far);
         this.viewProjection = new Mat4();
         this.position = new Vec3(0, 0, 0);
         this.direction = new Vec3(0, 0, 1);

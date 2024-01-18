@@ -27,7 +27,7 @@ export class Controller {
     private transform: Mat4;
     private velocity: float;
     private static readonly MinVelocity: float = 0.01;
-    private static readonly DefaultVelocity: float = 0.35;
+    private static readonly DefaultVelocity: float = 0.1;
     private static readonly MaxVelocity: float = 5;
 
     public constructor(canvas: HTMLCanvasElement, camera: CameraRequirements) {

@@ -4,10 +4,10 @@
  */
 
 import { float, int } from "../../types/utils.type.js";
-import { bytes4 } from "../helper.js";
+import { bytes4 } from "./constants.js";
 
 export class GPUTiming {
-    private static readonly capacity: int = 2;
+    private static readonly Capacity: int = 2;
 
     private readonly querySet: GPUQuerySet;
     private readonly queryBuffer: GPUBuffer;
@@ -28,13 +28,13 @@ export class GPUTiming {
     private createSet(device: GPUDevice): GPUQuerySet {
         return device.createQuerySet({
             type: "timestamp",
-            count: GPUTiming.capacity,
+            count: GPUTiming.Capacity,
         } as GPUQuerySetDescriptor);
     }
 
     private createBuffer(device: GPUDevice): GPUBuffer {
         return device.createBuffer({
-            size: GPUTiming.capacity * (bytes4 * 2), //64bit
+            size: GPUTiming.Capacity * (bytes4 * 2), //64bit
             usage:
                 GPUBufferUsage.QUERY_RESOLVE |
                 GPUBufferUsage.STORAGE |
@@ -54,7 +54,7 @@ export class GPUTiming {
         encoder.resolveQuerySet(
             this.querySet,
             0,
-            GPUTiming.capacity,
+            GPUTiming.Capacity,
             this.queryBuffer,
             0,
         );

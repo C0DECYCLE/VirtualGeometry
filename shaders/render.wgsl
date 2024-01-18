@@ -9,7 +9,6 @@ struct Uniforms {
 
 struct Vertex {
     position: vec3f,
-    color: vec3f,
 };
 
 struct Instance {
@@ -36,7 +35,7 @@ struct VertexShaderOut {
     var out: VertexShaderOut;
     out.position = uniforms.viewProjection * vec4f(position, 1);
     let uid: f32 = f32(vertexIndex);
-    out.color = vertex.color; //fract(vec3f(uid * 0.1443, uid * 0.6841, uid * 0.7323));
+    out.color = fract(vec3f(uid * 0.1443, uid * 0.6841, uid * 0.7323));
     return out;
 }
 
