@@ -4,6 +4,7 @@
  */
 
 import { RollingAverage } from "../utilities/RollingAverage.js";
+import { Vec3 } from "../utilities/Vec3.js";
 import { log } from "../utilities/logger.js";
 import { assert, clear, dotit } from "../utilities/utils.js";
 import { EmptyCallback, Nullable, float, int } from "../utils.type.js";
@@ -91,85 +92,140 @@ export class Renderer {
             true,
         );
         //build tree
+        const pre: float = performance.now();
 
-        const triangles: [int, int, int][] = [];
-        const queue: int[] = [];
-        const triangleToCluster: int[] = [];
+        const triangleIndices: [int, int, int][] = [];
+        const triangleIdQueue: int[] = [];
+        const triangleIdToClusterId: int[] = [];
         for (let i: int = 0; i < geometry.indicesCount! / 3; i++) {
-            triangles.push([
+            triangleIndices.push([
                 geometry.indices![i * 3 + 0],
                 geometry.indices![i * 3 + 1],
                 geometry.indices![i * 3 + 2],
             ]);
-            queue.push(i);
-            triangleToCluster.push(0);
+            triangleIdQueue.push(i);
+            triangleIdToClusterId.push(0);
+        }
+
+        type BoundingSphere = {
+            center: Vec3;
+            radius: float;
+        };
+
+        function encompassingRadius(center: Vec3, triangleId: int): float {
+            const indices: [int, int, int] = triangleIndices[triangleId];
+            return Math.max(
+                new Vec3(
+                    geometry.vertices[indices[0] * 4 + 0],
+                    geometry.vertices[indices[0] * 4 + 1],
+                    geometry.vertices[indices[0] * 4 + 2],
+                )
+                    .sub(center)
+                    .lengthQuadratic(),
+                new Vec3(
+                    geometry.vertices[indices[1] * 4 + 0],
+                    geometry.vertices[indices[1] * 4 + 1],
+                    geometry.vertices[indices[1] * 4 + 2],
+                )
+                    .sub(center)
+                    .lengthQuadratic(),
+                new Vec3(
+                    geometry.vertices[indices[2] * 4 + 0],
+                    geometry.vertices[indices[2] * 4 + 1],
+                    geometry.vertices[indices[2] * 4 + 2],
+                )
+                    .sub(center)
+                    .lengthQuadratic(),
+            );
+        }
+        function boundingSphere(triangleIds: int[]): BoundingSphere {
+            const center: Vec3 = new Vec3();
+            for (let i: int = 0; i < triangleIds.length; i++) {
+                const indices: [int, int, int] =
+                    triangleIndices[triangleIds[i]];
+                center.add(
+                    geometry.vertices[indices[0] * 4 + 0],
+                    geometry.vertices[indices[0] * 4 + 1],
+                    geometry.vertices[indices[0] * 4 + 2],
+                );
+                center.add(
+                    geometry.vertices[indices[1] * 4 + 0],
+                    geometry.vertices[indices[1] * 4 + 1],
+                    geometry.vertices[indices[1] * 4 + 2],
+                );
+                center.add(
+                    geometry.vertices[indices[2] * 4 + 0],
+                    geometry.vertices[indices[2] * 4 + 1],
+                    geometry.vertices[indices[2] * 4 + 2],
+                );
+            }
+            center.scale(1 / (triangleIds.length * 3));
+            let radius: float = 0;
+            for (let i: int = 0; i < triangleIds.length; i++) {
+                radius = Math.max(
+                    radius,
+                    encompassingRadius(center, triangleIds[i]),
+                );
+            }
+            return { center: center, radius: radius };
         }
 
         let clusterId = 0;
-        while (queue.length !== 0) {
-            const adjacent: Set<int> = new Set<int>();
+        while (triangleIdQueue.length !== 0) {
+            const first: int = triangleIdQueue.pop()!;
+            triangleIdToClusterId[first] = clusterId;
 
-            const first: int = queue.pop()!;
-            triangleToCluster[first] = clusterId;
-            adjacent.add(triangles[first][0]);
-            adjacent.add(triangles[first][1]);
-            adjacent.add(triangles[first][2]);
-            let count: int = 1;
-
-            while (count < 128 && queue.length !== 0) {
-                let bestIndex: int = 0;
-                let bestMatching: int = 0;
-                for (let i: int = 0; i < queue.length; i++) {
-                    const possible: int = queue[i];
-                    let matching: int = 0;
-                    if (adjacent.has(triangles[possible][0])) {
-                        matching++;
-                    }
-                    if (adjacent.has(triangles[possible][1])) {
-                        matching++;
-                    }
-                    if (adjacent.has(triangles[possible][2])) {
-                        matching++;
-                    }
-                    if (bestMatching < matching) {
-                        bestIndex = i;
-                        bestMatching = matching;
-                    }
-                    if (matching > 2) {
-                        break;
+            const inCluster: int[] = [first];
+            let clusterBoundingSphere: BoundingSphere =
+                boundingSphere(inCluster);
+            while (inCluster.length < 128 && triangleIdQueue.length !== 0) {
+                let minI: int = -1;
+                let minRadiusIncrease: float = Infinity;
+                for (let i: int = 0; i < triangleIdQueue.length; i++) {
+                    const possibleId: int = triangleIdQueue[i];
+                    const possibleRadiusIncrease: float =
+                        encompassingRadius(
+                            clusterBoundingSphere.center,
+                            possibleId,
+                        ) - clusterBoundingSphere.radius;
+                    if (possibleRadiusIncrease < minRadiusIncrease) {
+                        minI = i;
+                        minRadiusIncrease = possibleRadiusIncrease;
                     }
                 }
-
-                const best: int = queue[bestIndex];
-                queue[bestIndex] = queue[queue.length - 1];
-                queue.pop();
-                triangleToCluster[best] = clusterId;
-                adjacent.add(triangles[best][0]);
-                adjacent.add(triangles[best][1]);
-                adjacent.add(triangles[best][2]);
-                count++;
+                assert(minI !== -1);
+                const minId: int = triangleIdQueue[minI];
+                triangleIdQueue[minI] =
+                    triangleIdQueue[triangleIdQueue.length - 1];
+                triangleIdQueue.pop();
+                triangleIdToClusterId[minId] = clusterId;
+                inCluster.push(minId);
+                clusterBoundingSphere = boundingSphere(inCluster);
             }
 
+            if (clusterId % 10 === 0) {
+                log(clusterId, inCluster.length);
+            }
             clusterId++;
-            log(clusterId, count);
         }
-        //log(triangleToCluster);
 
         let indices: Uint32Array = new Uint32Array(geometry.indicesCount! * 3);
-        for (let i: int = 0; i < triangles.length; i++) {
+        for (let i: int = 0; i < triangleIndices.length; i++) {
             indices[i * 9 + 0] = geometry.indices![i * 3 + 0];
             indices[i * 9 + 1] = i;
-            indices[i * 9 + 2] = triangleToCluster[i];
+            indices[i * 9 + 2] = triangleIdToClusterId[i];
             indices[i * 9 + 3] = geometry.indices![i * 3 + 1];
             indices[i * 9 + 4] = i;
-            indices[i * 9 + 5] = triangleToCluster[i];
+            indices[i * 9 + 5] = triangleIdToClusterId[i];
             indices[i * 9 + 6] = geometry.indices![i * 3 + 2];
             indices[i * 9 + 7] = i;
-            indices[i * 9 + 8] = triangleToCluster[i];
+            indices[i * 9 + 8] = triangleIdToClusterId[i];
         }
         geometry.indices = indices;
 
-        log(key, geometry);
+        log(dotit(clusterId), "clusters", dotit(performance.now() - pre), "ms");
+
+        //log(key, geometry);
         this.geometry = geometry;
     }
 
