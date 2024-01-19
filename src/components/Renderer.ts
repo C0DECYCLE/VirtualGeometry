@@ -5,7 +5,7 @@
 
 import { RollingAverage } from "../utilities/RollingAverage.js";
 import { log } from "../utilities/logger.js";
-import { assert, dotit } from "../utilities/utils.js";
+import { assert, clear, dotit } from "../utilities/utils.js";
 import { EmptyCallback, Nullable, float, int } from "../utils.type.js";
 import { Camera } from "./Camera.js";
 import { Controller } from "./Controller.js";
@@ -91,6 +91,84 @@ export class Renderer {
             true,
         );
         //build tree
+
+        const triangles: [int, int, int][] = [];
+        const queue: int[] = [];
+        const triangleToCluster: int[] = [];
+        for (let i: int = 0; i < geometry.indicesCount! / 3; i++) {
+            triangles.push([
+                geometry.indices![i * 3 + 0],
+                geometry.indices![i * 3 + 1],
+                geometry.indices![i * 3 + 2],
+            ]);
+            queue.push(i);
+            triangleToCluster.push(0);
+        }
+
+        let clusterId = 0;
+        while (queue.length !== 0) {
+            const adjacent: Set<int> = new Set<int>();
+
+            const first: int = queue.pop()!;
+            triangleToCluster[first] = clusterId;
+            adjacent.add(triangles[first][0]);
+            adjacent.add(triangles[first][1]);
+            adjacent.add(triangles[first][2]);
+            let count: int = 1;
+
+            while (count < 128 && queue.length !== 0) {
+                let bestIndex: int = 0;
+                let bestMatching: int = 0;
+                for (let i: int = 0; i < queue.length; i++) {
+                    const possible: int = queue[i];
+                    let matching: int = 0;
+                    if (adjacent.has(triangles[possible][0])) {
+                        matching++;
+                    }
+                    if (adjacent.has(triangles[possible][1])) {
+                        matching++;
+                    }
+                    if (adjacent.has(triangles[possible][2])) {
+                        matching++;
+                    }
+                    if (bestMatching < matching) {
+                        bestIndex = i;
+                        bestMatching = matching;
+                    }
+                    if (matching > 2) {
+                        break;
+                    }
+                }
+
+                const best: int = queue[bestIndex];
+                queue[bestIndex] = queue[queue.length - 1];
+                queue.pop();
+                triangleToCluster[best] = clusterId;
+                adjacent.add(triangles[best][0]);
+                adjacent.add(triangles[best][1]);
+                adjacent.add(triangles[best][2]);
+                count++;
+            }
+
+            clusterId++;
+            log(clusterId, count);
+        }
+        //log(triangleToCluster);
+
+        let indices: Uint32Array = new Uint32Array(geometry.indicesCount! * 3);
+        for (let i: int = 0; i < triangles.length; i++) {
+            indices[i * 9 + 0] = geometry.indices![i * 3 + 0];
+            indices[i * 9 + 1] = i;
+            indices[i * 9 + 2] = triangleToCluster[i];
+            indices[i * 9 + 3] = geometry.indices![i * 3 + 1];
+            indices[i * 9 + 4] = i;
+            indices[i * 9 + 5] = triangleToCluster[i];
+            indices[i * 9 + 6] = geometry.indices![i * 3 + 2];
+            indices[i * 9 + 7] = i;
+            indices[i * 9 + 8] = triangleToCluster[i];
+        }
+        geometry.indices = indices;
+
         log(key, geometry);
         this.geometry = geometry;
     }
@@ -185,6 +263,7 @@ export class Renderer {
 
     private initializeCameraControl(): void {
         this.camera = new Camera(this.canvas.width / this.canvas.height, 1000);
+        this.camera.position.set(0, 0, 5);
         this.control = new Controller(this.canvas, this.camera);
     }
 

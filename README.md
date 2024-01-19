@@ -19,6 +19,7 @@
 ### Other
 
 -   https://discourse.threejs.org/t/virtually-geometric/28420/40
+-   https://jcgt.org/published/0012/02/01/
 
 ## Idea
 
@@ -67,3 +68,4 @@
 -   check which lod to show by calculating its screen size (use bounding sphere info to project to points onto screen)
 
 -   every update: record all object property changes and write them chunk vise all together before draw process, every object holds its index in the instance buffer, if deleted the place gets registered in the cpu as free and id a new gets created it gets filled, this would mean holes🤔 not bad because compute shader can skip them? or should they be filled up by swapping last one in? anyway egal which case it requires a cpu-gpu memory write. how do they work around buffer limits? wouldnt that mean a general instance limit?
+-   make debug mode for freezing and also debug shadings (diffrenet ids diffrent colors etc)
