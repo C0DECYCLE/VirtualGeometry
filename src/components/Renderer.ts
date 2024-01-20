@@ -111,7 +111,7 @@ export class Renderer {
             center: Vec3;
             radius: float;
         };
-
+        /*
         function encompassingRadius(center: Vec3, triangleId: int): float {
             const indices: [int, int, int] = triangleIndices[triangleId];
             return Math.max(
@@ -169,6 +169,140 @@ export class Renderer {
             }
             return { center: center, radius: radius };
         }
+        */
+        function boundingSphere(
+            triangleIds: int[],
+            additional?: int,
+        ): BoundingSphere {
+            const center: Vec3 = new Vec3();
+            for (let i: int = 0; i < triangleIds.length + 1; i++) {
+                let indices: [int, int, int];
+                if (i >= triangleIds.length) {
+                    if (additional === undefined) {
+                        break;
+                    }
+                    indices = triangleIndices[additional];
+                } else {
+                    indices = triangleIndices[triangleIds[i]];
+                }
+                assert(indices!);
+                const a: Vec3 = new Vec3(
+                    geometry.vertices[indices[0] * 4 + 0],
+                    geometry.vertices[indices[0] * 4 + 1],
+                    geometry.vertices[indices[0] * 4 + 2],
+                );
+                const b: Vec3 = new Vec3(
+                    geometry.vertices[indices[1] * 4 + 0],
+                    geometry.vertices[indices[1] * 4 + 1],
+                    geometry.vertices[indices[1] * 4 + 2],
+                );
+                const c: Vec3 = new Vec3(
+                    geometry.vertices[indices[2] * 4 + 0],
+                    geometry.vertices[indices[2] * 4 + 1],
+                    geometry.vertices[indices[2] * 4 + 2],
+                );
+                center.add(a);
+                center.add(b);
+                center.add(c);
+            }
+            const n: int =
+                triangleIds.length + (additional !== undefined ? 1 : 0);
+            center.scale(1 / (n * 3));
+            let radius: float = 0;
+            for (let i: int = 0; i < triangleIds.length + 1; i++) {
+                let indices: [int, int, int];
+                if (i >= triangleIds.length) {
+                    if (additional === undefined) {
+                        break;
+                    }
+                    indices = triangleIndices[additional];
+                } else {
+                    indices = triangleIndices[triangleIds[i]];
+                }
+                assert(indices!);
+                const a: Vec3 = new Vec3(
+                    geometry.vertices[indices[0] * 4 + 0],
+                    geometry.vertices[indices[0] * 4 + 1],
+                    geometry.vertices[indices[0] * 4 + 2],
+                );
+                const b: Vec3 = new Vec3(
+                    geometry.vertices[indices[1] * 4 + 0],
+                    geometry.vertices[indices[1] * 4 + 1],
+                    geometry.vertices[indices[1] * 4 + 2],
+                );
+                const c: Vec3 = new Vec3(
+                    geometry.vertices[indices[2] * 4 + 0],
+                    geometry.vertices[indices[2] * 4 + 1],
+                    geometry.vertices[indices[2] * 4 + 2],
+                );
+                radius = Math.max(
+                    radius,
+                    a.sub(center).lengthQuadratic(),
+                    b.sub(center).lengthQuadratic(),
+                    c.sub(center).lengthQuadratic(),
+                );
+            }
+            return { center: center, radius: radius };
+        }
+
+        type BoundingBox = {
+            min: Vec3;
+            max: Vec3;
+            diagonalQuadratic: float;
+        };
+        function boundingBox(
+            triangleIds: int[],
+            additional?: int,
+        ): BoundingBox {
+            let min: Nullable<Vec3> = null;
+            let max: Nullable<Vec3> = null;
+            for (let i: int = 0; i < triangleIds.length + 1; i++) {
+                let indices: [int, int, int];
+                if (i >= triangleIds.length) {
+                    if (additional === undefined) {
+                        break;
+                    }
+                    indices = triangleIndices[additional];
+                } else {
+                    indices = triangleIndices[triangleIds[i]];
+                }
+                assert(indices!);
+                const a: Vec3 = new Vec3(
+                    geometry.vertices[indices[0] * 4 + 0],
+                    geometry.vertices[indices[0] * 4 + 1],
+                    geometry.vertices[indices[0] * 4 + 2],
+                );
+                const b: Vec3 = new Vec3(
+                    geometry.vertices[indices[1] * 4 + 0],
+                    geometry.vertices[indices[1] * 4 + 1],
+                    geometry.vertices[indices[1] * 4 + 2],
+                );
+                const c: Vec3 = new Vec3(
+                    geometry.vertices[indices[2] * 4 + 0],
+                    geometry.vertices[indices[2] * 4 + 1],
+                    geometry.vertices[indices[2] * 4 + 2],
+                );
+                if (min === null) {
+                    min = a.clone();
+                }
+                if (max === null) {
+                    max = a.clone();
+                }
+                min.x = Math.min(min.x, a.x, b.x, c.x);
+                min.y = Math.min(min.y, a.y, b.y, c.y);
+                min.z = Math.min(min.z, a.z, b.z, c.z);
+                max.x = Math.max(max.x, a.x, b.x, c.x);
+                max.y = Math.max(max.y, a.y, b.y, c.y);
+                max.z = Math.max(max.z, a.z, b.z, c.z);
+            }
+            assert(min);
+            assert(max);
+            return {
+                min: min,
+                max: max,
+                diagonalQuadratic: max.clone().sub(min).lengthQuadratic(),
+            };
+        }
 
         let clusterId = 0;
         while (triangleIdQueue.length !== 0) {
@@ -176,31 +310,34 @@ export class Renderer {
             triangleIdToClusterId[first] = clusterId;
 
             const inCluster: int[] = [first];
-            let clusterBoundingSphere: BoundingSphere =
-                boundingSphere(inCluster);
+            let clusterBounding: BoundingSphere = boundingSphere(inCluster);
             while (inCluster.length < 128 && triangleIdQueue.length !== 0) {
-                let minI: int = -1;
-                let minRadiusIncrease: float = Infinity;
+                let bestI: int = -1;
+                let bestBounding: BoundingSphere;
+                let bestIncrease: float = Infinity;
                 for (let i: int = 0; i < triangleIdQueue.length; i++) {
                     const possibleId: int = triangleIdQueue[i];
-                    const possibleRadiusIncrease: float =
-                        encompassingRadius(
-                            clusterBoundingSphere.center,
-                            possibleId,
-                        ) - clusterBoundingSphere.radius;
-                    if (possibleRadiusIncrease < minRadiusIncrease) {
-                        minI = i;
-                        minRadiusIncrease = possibleRadiusIncrease;
+                    const possibleBounding: BoundingSphere = boundingSphere(
+                        inCluster,
+                        possibleId,
+                    );
+                    const possibleIncrease: float =
+                        possibleBounding.radius - clusterBounding.radius;
+                    if (possibleIncrease < bestIncrease) {
+                        bestI = i;
+                        bestBounding = possibleBounding;
+                        bestIncrease = possibleIncrease;
                     }
                 }
-                assert(minI !== -1);
-                const minId: int = triangleIdQueue[minI];
-                triangleIdQueue[minI] =
+                assert(bestI !== -1);
+                assert(bestBounding!);
+                const bestId: int = triangleIdQueue[bestI];
+                triangleIdQueue[bestI] =
                     triangleIdQueue[triangleIdQueue.length - 1];
                 triangleIdQueue.pop();
-                triangleIdToClusterId[minId] = clusterId;
-                inCluster.push(minId);
-                clusterBoundingSphere = boundingSphere(inCluster);
+                triangleIdToClusterId[bestId] = clusterId;
+                inCluster.push(bestId);
+                clusterBounding = bestBounding;
             }
 
             if (clusterId % 10 === 0) {
@@ -446,7 +583,7 @@ export class Renderer {
             } as GPUFragmentState,
             primitive: {
                 topology: "triangle-list",
-                cullMode: "back",
+                cullMode: "none", //"back"
             } as GPUPrimitiveState,
             depthStencil: {
                 depthWriteEnabled: true,

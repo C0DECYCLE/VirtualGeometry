@@ -14,3 +14,7 @@ renderer.run();
 //make plan with classes,
 //revert renderer back into less big function or leave like this start with geometry preprocessing,
 //use current as debugging and if acceptable remove everything and start clean;
+
+//about the meshlet generation: bounding ones were realy slow and memory heavy with bad results
+//plan new one similar to meshoptimizer library and greedy, and implement
+//first build triangle data with adjacent calculations

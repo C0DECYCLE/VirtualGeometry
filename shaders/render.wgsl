@@ -36,8 +36,9 @@ struct VertexShaderOut {
     let vertex: Vertex = vertecies[index.index];
     let instance: Instance = instances[instanceIndex];
 
-    let position: vec3f = vertex.position + instance.position;
-    
+    var position: vec3f = vertex.position + instance.position;
+    //position.x += f32(index.clusterId) * 0.5;
+
     var out: VertexShaderOut;
     out.position = uniforms.viewProjection * vec4f(position, 1);
     let uid: f32 = f32(index.clusterId) + 1; //f32(vertexIndex);
