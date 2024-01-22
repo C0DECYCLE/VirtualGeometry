@@ -6,8 +6,14 @@
 import { RollingAverage } from "../utilities/RollingAverage.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { log } from "../utilities/logger.js";
-import { assert, clear, dotit } from "../utilities/utils.js";
-import { EmptyCallback, Nullable, float, int } from "../utils.type.js";
+import { assert, dotit } from "../utilities/utils.js";
+import {
+    EmptyCallback,
+    Nullable,
+    Undefinable,
+    float,
+    int,
+} from "../utils.type.js";
 import { Camera } from "./Camera.js";
 import { Controller } from "./Controller.js";
 import { GPUTiming } from "./GPUTiming.js";
@@ -85,31 +91,17 @@ export class Renderer {
         this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     }
 
-    public async importGeometry(key: string, path: string): Promise<void> {
+    public async importGeometry(_key: string, path: string): Promise<void> {
         assert(!this.isInitialized);
         const geometry: OBJParseResult = OBJParser.Standard.parse(
             await this.loadText(path),
             true,
         );
         //build tree
-        const triangleIndices: [int, int, int][] = [];
-        const triangleIdQueue: int[] = [];
-        const triangleIdToClusterId: int[] = [];
-        for (let i: int = 0; i < geometry.indicesCount! / 3; i++) {
-            triangleIndices.push([
-                geometry.indices![i * 3 + 0],
-                geometry.indices![i * 3 + 1],
-                geometry.indices![i * 3 + 2],
-            ]);
-            triangleIdQueue.push(i);
-            triangleIdToClusterId.push(0);
-        }
-
-        type BoundingSphere = {
+        type Center = {
             sum: Vec3;
             n: int;
             center: Vec3;
-            radius: float;
         };
         function getVerices(indices: [int, int, int]): {
             a: Vec3;
@@ -133,7 +125,7 @@ export class Renderer {
             );
             return { a, b, c };
         }
-        function boundingSphere(triangleIds: int[]): BoundingSphere {
+        function center(triangleIds: int[]): Center {
             const sum: Vec3 = new Vec3();
             for (let i: int = 0; i < triangleIds.length; i++) {
                 const { a, b, c } = getVerices(triangleIndices[triangleIds[i]]);
@@ -143,94 +135,117 @@ export class Renderer {
             }
             const n: int = triangleIds.length * 3;
             const center = sum.clone().scale(1 / n);
-            let radius: float = 0;
-            for (let i: int = 0; i < triangleIds.length; i++) {
-                const { a, b, c } = getVerices(triangleIndices[triangleIds[i]]);
-                radius = Math.max(
-                    radius,
-                    a.sub(center).lengthQuadratic(),
-                    b.sub(center).lengthQuadratic(),
-                    c.sub(center).lengthQuadratic(),
-                );
-            }
-            return { sum: sum, n: n, center: center, radius: radius };
+            return { sum: sum, n: n, center: center };
         }
-        function boundingSphereRunning(
-            base: BoundingSphere,
-            triangleIds: int[],
-            additional: int,
-        ): BoundingSphere {
+        function centerRunning(base: Center, additional: int): Center {
             const { a, b, c } = getVerices(triangleIndices[additional]);
             const sum: Vec3 = base.sum.clone();
             sum.add(a);
             sum.add(b);
             sum.add(c);
-            const n: int = base.n + 1;
+            const n: int = base.n + 3;
             const center = sum.clone().scale(1 / n);
-            let radius: float = 0;
-            for (let i: int = 0; i < triangleIds.length + 1; i++) {
-                if (i >= triangleIds.length && additional === undefined) {
-                    break;
-                }
-                let indices: [int, int, int] =
-                    i >= triangleIds.length
-                        ? triangleIndices[additional!]
-                        : triangleIndices[triangleIds[i]];
-
-                const { a, b, c } = getVerices(indices);
-                radius = Math.max(
-                    radius,
-                    a.sub(center).lengthQuadratic(),
-                    b.sub(center).lengthQuadratic(),
-                    c.sub(center).lengthQuadratic(),
-                );
-            }
-            return { sum: sum, n: n, center: center, radius: radius };
+            return { sum: sum, n: n, center: center };
         }
 
-        const pre: float = performance.now();
+        const triangleIndices: [int, int, int][] = [];
+        const triangleIdQueue: int[] = [];
+        const triangleIdToClusterId: int[] = [];
+        for (let i: int = 0; i < geometry.indicesCount! / 3; i++) {
+            triangleIndices[i] = [
+                geometry.indices![i * 3 + 0],
+                geometry.indices![i * 3 + 1],
+                geometry.indices![i * 3 + 2],
+            ];
+            triangleIdQueue[i] = i;
+            triangleIdToClusterId[i] = 0;
+        }
 
-        let clusterId = 0;
-        while (triangleIdQueue.length !== 0) {
-            const first: int = triangleIdQueue.pop()!;
-            triangleIdToClusterId[first] = clusterId;
+        let pre: float = performance.now();
 
-            const inCluster: int[] = [first];
-            let clusterBounding: BoundingSphere = boundingSphere(inCluster);
-            while (inCluster.length < 128 && triangleIdQueue.length !== 0) {
-                let bestI: int = -1;
-                let bestBounding: BoundingSphere;
-                let bestIncrease: float = Infinity;
-                for (let i: int = 0; i < triangleIdQueue.length; i++) {
-                    const possibleId: int = triangleIdQueue[i];
-                    const possibleBounding: BoundingSphere =
-                        boundingSphereRunning(
-                            clusterBounding,
-                            inCluster,
-                            possibleId,
-                        );
-                    const possibleIncrease: float =
-                        possibleBounding.radius - clusterBounding.radius;
-                    if (possibleIncrease < bestIncrease) {
-                        bestI = i;
-                        bestBounding = possibleBounding;
-                        bestIncrease = possibleIncrease;
-                    }
+        const adjacentTriangles: int[][] = [];
+        for (let i: int = 0; i < triangleIndices.length; i++) {
+            const result: int[] = [];
+            const targetIndices: [int, int, int] = triangleIndices[i];
+            for (let j: int = 0; j < triangleIndices.length; j++) {
+                if (i === j) {
+                    continue;
                 }
-                assert(bestI !== -1);
-                assert(bestBounding!);
-                const bestId: int = triangleIdQueue[bestI];
-                triangleIdQueue[bestI] =
+                const possibleIndices: [int, int, int] = triangleIndices[j];
+                let matching: int = 0;
+                if (targetIndices.includes(possibleIndices[0])) {
+                    matching++;
+                }
+                if (targetIndices.includes(possibleIndices[1])) {
+                    matching++;
+                }
+                if (targetIndices.includes(possibleIndices[2])) {
+                    matching++;
+                }
+                if (matching > 1) {
+                    result.push(j);
+                }
+                if (result.length > 2) {
+                    break;
+                }
+            }
+            adjacentTriangles[i] = result;
+        }
+
+        log("adjacency", dotit(performance.now() - pre), "ms");
+        pre = performance.now();
+
+        let clusterId: int = 0;
+        let firstSuggestion: Undefinable<int> = undefined;
+        while (triangleIdQueue.length !== 0) {
+            const first: int =
+                firstSuggestion === undefined
+                    ? triangleIdQueue.pop()!
+                    : firstSuggestion;
+            triangleIdToClusterId[first] = clusterId;
+            firstSuggestion = undefined;
+            let count: int = 1;
+            const candidates: int[] = [...adjacentTriangles[first]];
+            //let clusterCenter: Center = center([first]);
+            while (count < 128 && triangleIdQueue.length !== 0) {
+                if (candidates.length === 0) {
+                    //log("no more candidates at", count);
+
+                    const next: int = triangleIdQueue.pop()!;
+                    triangleIdToClusterId[next] = clusterId;
+                    count++;
+                    candidates.push(...adjacentTriangles[next]);
+
+                    //break;
+                    continue;
+                }
+
+                const next: int = candidates.shift()!;
+
+                const nextInQueueAt: int = triangleIdQueue.indexOf(next);
+                if (nextInQueueAt === -1) {
+                    continue; //already assigned!
+                }
+
+                triangleIdQueue[nextInQueueAt] =
                     triangleIdQueue[triangleIdQueue.length - 1];
                 triangleIdQueue.pop();
-                triangleIdToClusterId[bestId] = clusterId;
-                inCluster.push(bestId);
-                clusterBounding = bestBounding;
-            }
 
-            if (clusterId % 10 === 0) {
-                log(clusterId, inCluster.length);
+                triangleIdToClusterId[next] = clusterId;
+                count++;
+                candidates.push(...adjacentTriangles[next]);
             }
+            for (let i: int = 0; i < candidates.length; i++) {
+                const suggestion: int = candidates[i];
+                if (!triangleIdQueue.includes(suggestion)) {
+                    continue; //already taken!
+                }
+                firstSuggestion = suggestion;
+                break;
+            }
+            //if (clusterId % 10 === 0) {
+            //log(clusterId, count);
+            //}
             clusterId++;
         }
 
