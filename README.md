@@ -70,3 +70,5 @@
 
 -   every update: record all object property changes and write them chunk vise all together before draw process, every object holds its index in the instance buffer, if deleted the place gets registered in the cpu as free and id a new gets created it gets filled, this would mean holes🤔 not bad because compute shader can skip them? or should they be filled up by swapping last one in? anyway egal which case it requires a cpu-gpu memory write. how do they work around buffer limits? wouldnt that mean a general instance limit?
 -   make debug mode for freezing and also debug shadings (diffrenet ids diffrent colors etc)
+-   vertex, triangle, cluster, geometry class make abstraction and id types, then make good renderer and just schedule the normal / all clusters
+-   then do gpu culling etc, then merge and simplify and smart schedule

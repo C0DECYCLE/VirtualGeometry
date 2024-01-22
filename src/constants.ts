@@ -8,3 +8,5 @@ import { int } from "./utils.type.js";
 export const bytes4: int = 4;
 
 export const vec3Layout: int = 3 + 1;
+
+export const ClusterLimit: int = 128;

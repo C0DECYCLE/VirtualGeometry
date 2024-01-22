@@ -6,8 +6,16 @@
 import { Vec3 } from "./utilities/Vec3";
 import { int } from "./utils.type";
 
-export type Center = {
+export type GeometryId = int;
+
+export type ClusterId = int;
+
+export type ClusterCenter = {
     sum: Vec3;
     n: int;
     center: Vec3;
 };
+
+export type TriangleId = int;
+
+export type VertexId = int;

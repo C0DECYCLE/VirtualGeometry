@@ -20,6 +20,9 @@ import { GPUTiming } from "../components/GPUTiming.js";
 import { OBJParseResult, OBJParser } from "../components/OBJParser.js";
 import { Stats } from "../components/Stats.js";
 import { vec3Layout } from "../constants.js";
+import { Geometry } from "./Geometry.js";
+import { Cluster } from "./Cluster.js";
+import { Triangle } from "./Triangle.js";
 
 export class Renderer {
     private static readonly Features: string[] = [
@@ -93,10 +96,25 @@ export class Renderer {
 
     public async importGeometry(_key: string, path: string): Promise<void> {
         assert(!this.isInitialized);
-        const geometry: OBJParseResult = OBJParser.Standard.parse(
+        const parse: OBJParseResult = OBJParser.Standard.parse(
             await this.loadText(path),
             true,
         );
+
+        const geometry: Geometry = new Geometry(0, parse);
+
+        log(geometry);
+        /*
+        let a = 2;
+        if (a == 2) {
+            throw new Error();
+        }
+
+        type Center = {
+            sum: Vec3;
+            n: int;
+            center: Vec3;
+        };
 
         //helper to get verticies from triangle indices
 
@@ -106,19 +124,19 @@ export class Renderer {
             c: Vec3;
         } {
             const a: Vec3 = new Vec3(
-                geometry.vertices[indices[0] * 4 + 0],
-                geometry.vertices[indices[0] * 4 + 1],
-                geometry.vertices[indices[0] * 4 + 2],
+                parse.vertices[indices[0] * 4 + 0],
+                parse.vertices[indices[0] * 4 + 1],
+                parse.vertices[indices[0] * 4 + 2],
             );
             const b: Vec3 = new Vec3(
-                geometry.vertices[indices[1] * 4 + 0],
-                geometry.vertices[indices[1] * 4 + 1],
-                geometry.vertices[indices[1] * 4 + 2],
+                parse.vertices[indices[1] * 4 + 0],
+                parse.vertices[indices[1] * 4 + 1],
+                parse.vertices[indices[1] * 4 + 2],
             );
             const c: Vec3 = new Vec3(
-                geometry.vertices[indices[2] * 4 + 0],
-                geometry.vertices[indices[2] * 4 + 1],
-                geometry.vertices[indices[2] * 4 + 2],
+                parse.vertices[indices[2] * 4 + 0],
+                parse.vertices[indices[2] * 4 + 1],
+                parse.vertices[indices[2] * 4 + 2],
             );
             return { a, b, c };
         }
@@ -167,11 +185,11 @@ export class Renderer {
         const triangleIndices: [int, int, int][] = [];
         const triangleIdQueue: int[] = [];
         const triangleIdToClusterId: int[] = [];
-        for (let i: int = 0; i < geometry.indicesCount! / 3; i++) {
+        for (let i: int = 0; i < parse.indicesCount! / 3; i++) {
             triangleIndices[i] = [
-                geometry.indices![i * 3 + 0],
-                geometry.indices![i * 3 + 1],
-                geometry.indices![i * 3 + 2],
+                parse.indices![i * 3 + 0],
+                parse.indices![i * 3 + 1],
+                parse.indices![i * 3 + 2],
             ];
             triangleIdQueue[i] = i;
             triangleIdToClusterId[i] = 0;
@@ -181,14 +199,14 @@ export class Renderer {
 
         //calculate for all triangles their adjacent triangles
 
-        const adjacentTriangles: int[][] = [];
+        const adjacentTriangles: Set<int>[] = [];
 
         for (let i: int = 0; i < triangleIndices.length; i++) {
-            adjacentTriangles[i] = [];
+            adjacentTriangles[i] = new Set<int>();
         }
 
         for (let i: int = 0; i < triangleIndices.length; i++) {
-            if (adjacentTriangles[i].length > 2) {
+            if (adjacentTriangles[i].size > 2) {
                 continue;
             }
             const targetIndices: [int, int, int] = triangleIndices[i];
@@ -208,10 +226,10 @@ export class Renderer {
                     matching++;
                 }
                 if (matching > 1) {
-                    adjacentTriangles[i].push(j);
-                    adjacentTriangles[j].push(i);
+                    adjacentTriangles[i].add(j);
+                    adjacentTriangles[j].add(i);
                 }
-                if (adjacentTriangles[i].length > 2) {
+                if (adjacentTriangles[i].size > 2) {
                     break;
                 }
             }
@@ -303,21 +321,47 @@ export class Renderer {
         }
 
         log(dotit(clusterId), "clusters", dotit(performance.now() - pre), "ms");
+        
 
-        let indices: Uint32Array = new Uint32Array(geometry.indicesCount! * 3);
+        let indices: Uint32Array = new Uint32Array(parse.indicesCount! * 3);
         for (let i: int = 0; i < triangleIndices.length; i++) {
-            indices[i * 9 + 0] = geometry.indices![i * 3 + 0];
+            indices[i * 9 + 0] = parse.indices![i * 3 + 0];
             indices[i * 9 + 1] = i;
             indices[i * 9 + 2] = triangleIdToClusterId[i];
-            indices[i * 9 + 3] = geometry.indices![i * 3 + 1];
+            indices[i * 9 + 3] = parse.indices![i * 3 + 1];
             indices[i * 9 + 4] = i;
             indices[i * 9 + 5] = triangleIdToClusterId[i];
-            indices[i * 9 + 6] = geometry.indices![i * 3 + 2];
+            indices[i * 9 + 6] = parse.indices![i * 3 + 2];
             indices[i * 9 + 7] = i;
             indices[i * 9 + 8] = triangleIdToClusterId[i];
         }
-        geometry.indices = indices;
-        this.geometry = geometry;
+        parse.indices = indices;
+        */
+
+        let indices: Uint32Array = new Uint32Array(parse.indicesCount! * 3);
+        for (let i: int = 0; i < parse.indicesCount! / 3; i++) {
+            indices[i * 9 + 0] = parse.indices![i * 3 + 0];
+            indices[i * 9 + 1] = i;
+            //indices[i * 9 + 2] = triangleIdToClusterId[i];
+            indices[i * 9 + 3] = parse.indices![i * 3 + 1];
+            indices[i * 9 + 4] = i;
+            //indices[i * 9 + 5] = triangleIdToClusterId[i];
+            indices[i * 9 + 6] = parse.indices![i * 3 + 2];
+            indices[i * 9 + 7] = i;
+            //indices[i * 9 + 8] = triangleIdToClusterId[i];
+        }
+        for (let i: int = 0; i < geometry.clusters.length; i++) {
+            const cluster: Cluster = geometry.clusters[i];
+            for (let j: int = 0; j < cluster.triangles.length; j++) {
+                const triangle: Triangle = cluster.triangles[j];
+                indices[triangle.globalId * 9 + 2] = cluster.localId;
+                indices[triangle.globalId * 9 + 5] = cluster.localId;
+                indices[triangle.globalId * 9 + 8] = cluster.localId;
+            }
+        }
+        parse.indices = indices;
+
+        this.geometry = parse;
     }
 
     private async loadText(path: string): Promise<string> {
