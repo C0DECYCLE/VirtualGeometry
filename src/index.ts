@@ -3,10 +3,10 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { Renderer } from "./components/Renderer.js";
+import { Renderer } from "./core/Renderer.js";
 
 const renderer: Renderer = new Renderer();
-await renderer.importGeometry("suzanne", "./resources/suzanne.obj");
+await renderer.importGeometry("suzanne", "./resources/bunlow.obj");
 await renderer.initialize();
 //const object: RenderObject = renderer.add(new Vec3(0, 0, 0), "suzanne");
 renderer.run();

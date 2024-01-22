@@ -4,7 +4,7 @@
  */
 
 import { float, int } from "../../types/utils.type.js";
-import { bytes4 } from "./constants.js";
+import { bytes4 } from "../constants.js";
 
 export class GPUTiming {
     private static readonly Capacity: int = 2;

@@ -70,6 +70,12 @@ export function count<T>(value: T[], target: T): int {
     return value.filter((x: T): boolean => x === target).length;
 }
 
+export function swapRemove<T>(value: T[], at: int): T[] {
+    value[at] = value[value.length - 1];
+    value.pop();
+    return value;
+}
+
 export function clear<T>(value: T[]): T[] {
     value.length = 0;
     return value;

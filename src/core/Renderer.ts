@@ -6,7 +6,7 @@
 import { RollingAverage } from "../utilities/RollingAverage.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { log } from "../utilities/logger.js";
-import { assert, dotit } from "../utilities/utils.js";
+import { assert, dotit, swapRemove } from "../utilities/utils.js";
 import {
     EmptyCallback,
     Nullable,
@@ -14,12 +14,12 @@ import {
     float,
     int,
 } from "../utils.type.js";
-import { Camera } from "./Camera.js";
-import { Controller } from "./Controller.js";
-import { GPUTiming } from "./GPUTiming.js";
-import { OBJParseResult, OBJParser } from "./OBJParser.js";
-import { Stats } from "./Stats.js";
-import { vec3Layout } from "./constants.js";
+import { Camera } from "../components/Camera.js";
+import { Controller } from "../components/Controller.js";
+import { GPUTiming } from "../components/GPUTiming.js";
+import { OBJParseResult, OBJParser } from "../components/OBJParser.js";
+import { Stats } from "../components/Stats.js";
+import { vec3Layout } from "../constants.js";
 
 export class Renderer {
     private static readonly Features: string[] = [
@@ -97,12 +97,9 @@ export class Renderer {
             await this.loadText(path),
             true,
         );
-        //build tree
-        type Center = {
-            sum: Vec3;
-            n: int;
-            center: Vec3;
-        };
+
+        //helper to get verticies from triangle indices
+
         function getVerices(indices: [int, int, int]): {
             a: Vec3;
             b: Vec3;
@@ -125,28 +122,47 @@ export class Renderer {
             );
             return { a, b, c };
         }
-        function center(triangleIds: int[]): Center {
-            const sum: Vec3 = new Vec3();
-            for (let i: int = 0; i < triangleIds.length; i++) {
-                const { a, b, c } = getVerices(triangleIndices[triangleIds[i]]);
-                sum.add(a);
-                sum.add(b);
-                sum.add(c);
-            }
-            const n: int = triangleIds.length * 3;
-            const center = sum.clone().scale(1 / n);
-            return { sum: sum, n: n, center: center };
-        }
-        function centerRunning(base: Center, additional: int): Center {
-            const { a, b, c } = getVerices(triangleIndices[additional]);
-            const sum: Vec3 = base.sum.clone();
+
+        //calculate center running way
+
+        function runningCenter(joining: int, base?: Center): Center {
+            const { a, b, c } = getVerices(triangleIndices[joining]);
+            const sum: Vec3 =
+                base !== undefined ? base.sum.clone() : new Vec3();
             sum.add(a);
             sum.add(b);
             sum.add(c);
-            const n: int = base.n + 3;
-            const center = sum.clone().scale(1 / n);
-            return { sum: sum, n: n, center: center };
+            const n: int = (base !== undefined ? base.n : 0) + 3;
+            return { sum: sum, n: n, center: sum.clone().scale(1 / n) };
         }
+
+        //find nearest to center
+        function centerNearest(
+            center: Center,
+            triangleIds: int[],
+        ): { i: int; id: int } {
+            let nearestI: Undefinable<int> = undefined;
+            let nearestId: Undefinable<int> = undefined;
+            let nearestQuadratic: float = Infinity;
+            for (let i: int = 0; i < triangleIds.length; i++) {
+                const { a, b, c } = getVerices(triangleIndices[triangleIds[i]]);
+                const biggest: float = Math.max(
+                    a.sub(center.center).lengthQuadratic(),
+                    b.sub(center.center).lengthQuadratic(),
+                    c.sub(center.center).lengthQuadratic(),
+                );
+                if (biggest < nearestQuadratic) {
+                    nearestI = i;
+                    nearestId = triangleIds[i];
+                    nearestQuadratic = biggest;
+                }
+            }
+            assert(nearestI !== undefined);
+            assert(nearestId !== undefined);
+            return { i: nearestI, id: nearestId };
+        }
+
+        //prepare global working arrays
 
         const triangleIndices: [int, int, int][] = [];
         const triangleIdQueue: int[] = [];
@@ -163,9 +179,18 @@ export class Renderer {
 
         let pre: float = performance.now();
 
+        //calculate for all triangles their adjacent triangles
+
         const adjacentTriangles: int[][] = [];
+
         for (let i: int = 0; i < triangleIndices.length; i++) {
-            const result: int[] = [];
+            adjacentTriangles[i] = [];
+        }
+
+        for (let i: int = 0; i < triangleIndices.length; i++) {
+            if (adjacentTriangles[i].length > 2) {
+                continue;
+            }
             const targetIndices: [int, int, int] = triangleIndices[i];
             for (let j: int = 0; j < triangleIndices.length; j++) {
                 if (i === j) {
@@ -183,58 +208,85 @@ export class Renderer {
                     matching++;
                 }
                 if (matching > 1) {
-                    result.push(j);
+                    adjacentTriangles[i].push(j);
+                    adjacentTriangles[j].push(i);
                 }
-                if (result.length > 2) {
+                if (adjacentTriangles[i].length > 2) {
                     break;
                 }
             }
-            adjacentTriangles[i] = result;
         }
 
         log("adjacency", dotit(performance.now() - pre), "ms");
         pre = performance.now();
 
+        //actual cluster building here
+
         let clusterId: int = 0;
         let firstSuggestion: Undefinable<int> = undefined;
+
+        //while there are triangles left build new cluster
+
         while (triangleIdQueue.length !== 0) {
+            // cluster wide working properties
+
+            let count: int = 0;
+            const candidates: int[] = [];
+            let clusterCenter: Undefinable<Center> = undefined;
+
+            //register a triangle to this cluster
+
+            function register(triangleId: int): void {
+                triangleIdToClusterId[triangleId] = clusterId;
+                count++;
+                candidates.push(...adjacentTriangles[triangleId]);
+                clusterCenter = runningCenter(triangleId, clusterCenter);
+            }
+
+            //start with first, either random or suggested one
+
             const first: int =
                 firstSuggestion === undefined
                     ? triangleIdQueue.pop()!
                     : firstSuggestion;
-            triangleIdToClusterId[first] = clusterId;
             firstSuggestion = undefined;
-            let count: int = 1;
-            const candidates: int[] = [...adjacentTriangles[first]];
-            //let clusterCenter: Center = center([first]);
+
+            register(first);
+
+            //while the cluster is not full and triangles left
+
             while (count < 128 && triangleIdQueue.length !== 0) {
+                //if there are no candidates left take nearest unused
+
                 if (candidates.length === 0) {
-                    //log("no more candidates at", count);
+                    const { i, id } = centerNearest(
+                        clusterCenter!,
+                        triangleIdQueue,
+                    );
+                    swapRemove(triangleIdQueue, i);
+                    register(id);
 
-                    const next: int = triangleIdQueue.pop()!;
-                    triangleIdToClusterId[next] = clusterId;
-                    count++;
-                    candidates.push(...adjacentTriangles[next]);
+                    continue;
+                }
+                //else take nearest candidate
 
-                    //break;
+                const { i, id } = centerNearest(clusterCenter!, candidates);
+                swapRemove(candidates, i);
+
+                //see if already used if so skip
+
+                const nearestInQueueAt: int = triangleIdQueue.indexOf(id);
+                if (nearestInQueueAt === -1) {
                     continue;
                 }
 
-                const next: int = candidates.shift()!;
-
-                const nextInQueueAt: int = triangleIdQueue.indexOf(next);
-                if (nextInQueueAt === -1) {
-                    continue; //already assigned!
-                }
-
-                triangleIdQueue[nextInQueueAt] =
-                    triangleIdQueue[triangleIdQueue.length - 1];
-                triangleIdQueue.pop();
-
-                triangleIdToClusterId[next] = clusterId;
-                count++;
-                candidates.push(...adjacentTriangles[next]);
+                // else mark as use
+                swapRemove(triangleIdQueue, nearestInQueueAt);
+                register(id);
             }
+
+            //look if theres a candidate which is free and suggest it for next cluster
+
             for (let i: int = 0; i < candidates.length; i++) {
                 const suggestion: int = candidates[i];
                 if (!triangleIdQueue.includes(suggestion)) {
@@ -243,6 +295,7 @@ export class Renderer {
                 firstSuggestion = suggestion;
                 break;
             }
+
             //if (clusterId % 10 === 0) {
             //log(clusterId, count);
             //}
