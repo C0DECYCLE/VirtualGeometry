@@ -6,7 +6,7 @@
 import { Renderer } from "./components/Renderer.js";
 
 const renderer: Renderer = new Renderer();
-await renderer.importGeometry("suzanne", "./resources/suhigh.obj");
+await renderer.importGeometry("suzanne", "./resources/suzanne.obj");
 await renderer.initialize();
 //const object: RenderObject = renderer.add(new Vec3(0, 0, 0), "suzanne");
 renderer.run();
