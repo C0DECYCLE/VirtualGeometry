@@ -91,26 +91,13 @@ export class Renderer {
             await this.loadText(path),
             true,
         );
-        //build tree
-        const pre: float = performance.now();
 
-        const triangleIndices: [int, int, int][] = [];
-        const triangleIdQueue: int[] = [];
-        const triangleIdToClusterId: int[] = [];
-        for (let i: int = 0; i < geometry.indicesCount! / 3; i++) {
-            triangleIndices.push([
-                geometry.indices![i * 3 + 0],
-                geometry.indices![i * 3 + 1],
-                geometry.indices![i * 3 + 2],
-            ]);
-            triangleIdQueue.push(i);
-            triangleIdToClusterId.push(0);
-        }
-
+        /*
         type BoundingSphere = {
             center: Vec3;
             radius: float;
         };
+        */
         /*
         function encompassingRadius(center: Vec3, triangleId: int): float {
             const indices: [int, int, int] = triangleIndices[triangleId];
@@ -170,6 +157,7 @@ export class Renderer {
             return { center: center, radius: radius };
         }
         */
+        /*
         function boundingSphere(
             triangleIds: int[],
             additional?: int,
@@ -303,7 +291,80 @@ export class Renderer {
                 diagonalQuadratic: max.clone().sub(min).lengthQuadratic(),
             };
         }
+        */
+        //build tree
+        let pre: float = performance.now();
 
+        const triangleIndices: [int, int, int][] = [];
+        const triangleIdQueue: int[] = [];
+        const triangleIdToClusterId: int[] = [];
+        for (let i: int = 0; i < geometry.indicesCount! / 3; i++) {
+            triangleIndices[i] = [
+                geometry.indices![i * 3 + 0],
+                geometry.indices![i * 3 + 1],
+                geometry.indices![i * 3 + 2],
+            ];
+            triangleIdQueue[i] = i;
+            triangleIdToClusterId[i] = 0;
+        }
+        const adjacentTriangles: int[][] = [];
+        for (let i: int = 0; i < triangleIndices.length; i++) {
+            const result: int[] = [];
+            const targetIndices: [int, int, int] = triangleIndices[i];
+            for (let j: int = 0; j < triangleIndices.length; j++) {
+                if (i === j) {
+                    continue;
+                }
+                const possibleIndices: [int, int, int] = triangleIndices[j];
+                let matching: int = 0;
+                if (targetIndices.includes(possibleIndices[0])) {
+                    matching++;
+                }
+                if (targetIndices.includes(possibleIndices[1])) {
+                    matching++;
+                }
+                if (targetIndices.includes(possibleIndices[2])) {
+                    matching++;
+                }
+                if (matching > 1) {
+                    result.push(j);
+                }
+            }
+            adjacentTriangles[i] = result;
+        }
+
+        log("adjacency", dotit(performance.now() - pre), "ms");
+        pre = performance.now();
+
+        let clusterId = 0;
+        while (triangleIdQueue.length !== 0) {
+            const first: int = triangleIdQueue.pop()!;
+            triangleIdToClusterId[first] = clusterId;
+            let count: int = 1;
+            const candidates: int[] = [...adjacentTriangles[first]];
+            while (count < 128 && triangleIdQueue.length !== 0) {
+                if (candidates.length > 0) {
+                    const next: int = candidates.shift()!;
+
+                    const nextInQueueAt: int = triangleIdQueue.indexOf(next);
+                    triangleIdQueue[nextInQueueAt] =
+                        triangleIdQueue[triangleIdQueue.length - 1];
+                    triangleIdQueue.pop();
+
+                    triangleIdToClusterId[next] = clusterId;
+                    count++;
+                    candidates.push(...adjacentTriangles[next]);
+                    continue;
+                }
+                log("broke at", count);
+                break;
+            }
+            //if (clusterId % 10 === 0) {
+            log(clusterId, count);
+            //}
+            clusterId++;
+        }
+        /*
         let clusterId = 0;
         while (triangleIdQueue.length !== 0) {
             const first: int = triangleIdQueue.pop()!;
@@ -345,7 +406,7 @@ export class Renderer {
             }
             clusterId++;
         }
-
+        */
         let indices: Uint32Array = new Uint32Array(geometry.indicesCount! * 3);
         for (let i: int = 0; i < triangleIndices.length; i++) {
             indices[i * 9 + 0] = geometry.indices![i * 3 + 0];

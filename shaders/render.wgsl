@@ -37,11 +37,11 @@ struct VertexShaderOut {
     let instance: Instance = instances[instanceIndex];
 
     var position: vec3f = vertex.position + instance.position;
-    //position.x += f32(index.clusterId) * 0.5;
+    //position.x += f32(index.clusterId);
 
     var out: VertexShaderOut;
     out.position = uniforms.viewProjection * vec4f(position, 1);
-    let uid: f32 = f32(index.clusterId) + 1; //f32(vertexIndex);
+    let uid: f32 = f32(index.clusterId) + 1 + f32(index.triangleId) * 0.0001; //f32(vertexIndex);
     out.color = fract(vec3f(uid * 0.1443, uid * 0.6841, uid * 0.7323));
     return out;
 }

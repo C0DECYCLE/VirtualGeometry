@@ -20,6 +20,7 @@
 
 -   https://discourse.threejs.org/t/virtually-geometric/28420/40
 -   https://jcgt.org/published/0012/02/01/
+-   https://www.youtube.com/watch?v=7JEHPvSGaX8
 
 ## Idea
 
