@@ -24,34 +24,30 @@ export class Geometry {
             warn("Geometry: Vertex-Colors not supported yet.");
         }
         this.globalId = globalId;
+        const pre: float = performance.now();
         this.clusters = this.generateClusters(parse);
+        log(
+            dotit(this.clusters.length),
+            "clusters",
+            dotit(performance.now() - pre),
+            "ms",
+        );
     }
 
     private generateClusters(parse: OBJParseResult): Cluster[] {
         const vertices: Vertex[] = this.extractVertices(parse);
         const triangles: Triangle[] = this.generateTriangles(parse, vertices);
-
-        let pre: float = performance.now();
-
         this.computeAdjacent(triangles);
-
-        log("adjacency", dotit(performance.now() - pre), "ms");
-
-        pre = performance.now();
-
         const clusters: Cluster[] = [];
         const unused: Triangle[] = [...triangles];
         let suggestion: Undefinable<Triangle> = undefined;
-
         while (unused.length !== 0) {
             const group: Triangle[] = [];
             const candidates: Triangle[] = [];
             let center: Undefinable<ClusterCenter> = undefined;
-
             const first: Triangle = suggestion ? suggestion : unused.pop()!;
             suggestion = undefined;
             center = this.register(first, group, candidates, center);
-
             while (group.length < ClusterLimit && unused.length !== 0) {
                 if (candidates.length === 0) {
                     const { index, nearest } = this.findNearest(center, unused);
@@ -68,7 +64,6 @@ export class Geometry {
                 swapRemove(unused, nearestInUnusedAt);
                 center = this.register(nearest, group, candidates, center);
             }
-
             for (let i: int = 0; i < candidates.length; i++) {
                 const candidate: Triangle = candidates[i];
                 if (!unused.includes(candidate)) {
@@ -77,17 +72,8 @@ export class Geometry {
                 suggestion = candidate;
                 break;
             }
-
             clusters.push(new Cluster(-1, clusters.length, group));
         }
-
-        log(
-            dotit(clusters.length),
-            "clusters",
-            dotit(performance.now() - pre),
-            "ms",
-        );
-
         return clusters;
     }
 
