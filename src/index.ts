@@ -15,3 +15,5 @@ await renderer.prepare();
 renderer.entityHandler.add(entity);
 log(renderer, entity);
 renderer.run();
+
+//clean up, improve, make plan for better structure based on notes
