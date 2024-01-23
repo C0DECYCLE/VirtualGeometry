@@ -11,21 +11,28 @@ import { log, warn } from "../utilities/logger.js";
 import { assert, dotit, swapRemove } from "../utilities/utils.js";
 import { Undefinable, float, int } from "../utils.type.js";
 import { Cluster } from "./Cluster.js";
+import { GeometryCount, GeometryHandlerCount } from "./Counts.js";
 import { Triangle } from "./Triangle.js";
 import { Vertex } from "./Vertex.js";
 
 export class Geometry {
     public readonly globalId: GeometryId;
+    public readonly count: GeometryCount;
 
     public readonly clusters: Cluster[];
 
-    public constructor(globalId: GeometryId, parse: OBJParseResult) {
+    public constructor(
+        globalCount: GeometryHandlerCount,
+        parse: OBJParseResult,
+    ) {
         if (parse.vertexColors) {
             warn("Geometry: Vertex-Colors not supported yet.");
         }
-        this.globalId = globalId;
+        this.globalId = globalCount.incGeometries();
+        this.count = new GeometryCount(0, 0, 0);
+
         const pre: float = performance.now();
-        this.clusters = this.generateClusters(parse);
+        this.clusters = this.generateClusters(globalCount, parse);
         log(
             dotit(this.clusters.length),
             "clusters",
@@ -34,7 +41,10 @@ export class Geometry {
         );
     }
 
-    private generateClusters(parse: OBJParseResult): Cluster[] {
+    private generateClusters(
+        globalCount: GeometryHandlerCount,
+        parse: OBJParseResult,
+    ): Cluster[] {
         const vertices: Vertex[] = this.extractVertices(parse);
         const triangles: Triangle[] = this.generateTriangles(parse, vertices);
         this.computeAdjacent(triangles);
@@ -72,7 +82,7 @@ export class Geometry {
                 suggestion = candidate;
                 break;
             }
-            clusters.push(new Cluster(-1, clusters.length, group));
+            clusters.push(new Cluster(globalCount, this.count, group));
         }
         return clusters;
     }

@@ -4,16 +4,9 @@
  */
 
 import { RollingAverage } from "../utilities/RollingAverage.js";
-import { Vec3 } from "../utilities/Vec3.js";
 import { log } from "../utilities/logger.js";
-import { assert, dotit, swapRemove } from "../utilities/utils.js";
-import {
-    EmptyCallback,
-    Nullable,
-    Undefinable,
-    float,
-    int,
-} from "../utils.type.js";
+import { assert, dotit } from "../utilities/utils.js";
+import { EmptyCallback, Nullable, float, int } from "../utils.type.js";
 import { Camera } from "../components/Camera.js";
 import { Controller } from "../components/Controller.js";
 import { GPUTiming } from "../components/GPUTiming.js";
@@ -23,8 +16,11 @@ import { vec3Layout } from "../constants.js";
 import { Geometry } from "./Geometry.js";
 import { Cluster } from "./Cluster.js";
 import { Triangle } from "./Triangle.js";
+import { GeometryHandler } from "./GeometryHandler.js";
 
 export class Renderer {
+    public readonly geometryHandler: GeometryHandler;
+
     private static readonly Features: string[] = [
         "timestamp-query",
         "indirect-first-instance",
@@ -91,27 +87,25 @@ export class Renderer {
     private bundle: GPURenderBundle;
 
     public constructor() {
+        this.geometryHandler = new GeometryHandler();
         this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     }
 
     public async importGeometry(_key: string, path: string): Promise<void> {
         assert(!this.isInitialized);
-        const parse: OBJParseResult = OBJParser.Standard.parse(
-            await this.loadText(path),
-            true,
-        );
 
-        const geometry: Geometry = new Geometry(0, parse);
-        log(geometry);
-
+        /*
         let indices: Uint32Array = new Uint32Array(parse.indicesCount! * 3);
         for (let i: int = 0; i < parse.indicesCount! / 3; i++) {
             indices[i * 9 + 0] = parse.indices![i * 3 + 0];
             indices[i * 9 + 1] = i;
+            indices[i * 9 + 2] = 0;
             indices[i * 9 + 3] = parse.indices![i * 3 + 1];
             indices[i * 9 + 4] = i;
+            indices[i * 9 + 5] = 0;
             indices[i * 9 + 6] = parse.indices![i * 3 + 2];
             indices[i * 9 + 7] = i;
+            indices[i * 9 + 8] = 0;
         }
         for (let i: int = 0; i < geometry.clusters.length; i++) {
             const cluster: Cluster = geometry.clusters[i];
@@ -125,12 +119,7 @@ export class Renderer {
         parse.indices = indices;
 
         this.geometry = parse;
-    }
-
-    private async loadText(path: string): Promise<string> {
-        return await fetch(path).then(
-            async (response: Response) => await response.text(),
-        );
+        */
     }
 
     public async initialize(): Promise<void> {
