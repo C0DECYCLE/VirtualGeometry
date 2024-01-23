@@ -26,12 +26,12 @@ export class ClusterCount {
         return this.track.vertices;
     }
 
-    public incTriangles(): int {
+    public registerTriangle(): int {
         this.track.triangles++;
         return this.track.triangles - 1;
     }
 
-    public incVertices(): int {
+    public registerVertex(): int {
         this.track.vertices++;
         return this.track.vertices - 1;
     }
@@ -57,7 +57,7 @@ export class GeometryCount extends ClusterCount {
         return this.track.clusters;
     }
 
-    public incClusters(): int {
+    public registerCluster(): int {
         this.track.clusters++;
         return this.track.clusters - 1;
     }
@@ -90,7 +90,7 @@ export class GeometryHandlerCount extends GeometryCount {
         return this.track.geometries;
     }
 
-    public incGeometries(): int {
+    public registerGeometry(): int {
         this.track.geometries++;
         return this.track.geometries - 1;
     }

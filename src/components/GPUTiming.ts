@@ -4,7 +4,7 @@
  */
 
 import { float, int } from "../../types/utils.type.js";
-import { bytes4 } from "../constants.js";
+import { Bytes4 } from "../constants.js";
 
 export class GPUTiming {
     private static readonly Capacity: int = 2;
@@ -34,7 +34,7 @@ export class GPUTiming {
 
     private createBuffer(device: GPUDevice): GPUBuffer {
         return device.createBuffer({
-            size: GPUTiming.Capacity * (bytes4 * 2), //64bit
+            size: GPUTiming.Capacity * (Bytes4 * 2), //64bit
             usage:
                 GPUBufferUsage.QUERY_RESOLVE |
                 GPUBufferUsage.STORAGE |

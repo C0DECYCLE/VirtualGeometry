@@ -4,9 +4,11 @@
  */
 
 import { Vec3 } from "./utilities/Vec3";
-import { int } from "./utils.type";
+import { float, int } from "./utils.type";
 
 export type GeometryId = int;
+
+export type GeometryKey = string;
 
 export type ClusterId = int;
 
@@ -14,6 +16,11 @@ export type ClusterCenter = {
     sum: Vec3;
     n: int;
     center: Vec3;
+};
+
+export type ClusterBounds = {
+    center: Vec3;
+    radius: float;
 };
 
 export type TriangleId = int;
