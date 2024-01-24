@@ -16,7 +16,6 @@ export class DrawHandler {
 
     public readonly data: Uint32Array;
     private buffer: Nullable<GPUBuffer>;
-
     private bundle: Nullable<GPURenderBundle>;
 
     public constructor(renderer: Renderer) {
@@ -29,7 +28,12 @@ export class DrawHandler {
     public async prepare(): Promise<void> {
         const device: Nullable<GPUDevice> = this.renderer.device;
         assert(device);
-        this.buffer = device.createBuffer({
+        this.buffer = this.createBuffer(device);
+        this.bundle = this.encodeBundle(device);
+    }
+
+    private createBuffer(device: GPUDevice): GPUBuffer {
+        return device.createBuffer({
             label: "indirect-buffer",
             size: this.data.byteLength,
             usage:
@@ -37,7 +41,6 @@ export class DrawHandler {
                 GPUBufferUsage.STORAGE |
                 GPUBufferUsage.COPY_DST,
         } as GPUBufferDescriptor);
-        this.bundle = this.encodeBundle(device);
     }
 
     private encodeBundle(device: GPUDevice): GPURenderBundle {

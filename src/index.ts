@@ -14,5 +14,3 @@ await renderer.prepare();
 renderer.add(new Entity(new Vec3(0, 0, 0), "test"));
 log(renderer);
 renderer.run();
-
-//clean up, improve, make plan for better structure based on notes

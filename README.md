@@ -45,7 +45,7 @@
 3. build attributes for all clusters
    for each instance (=root cluster) build its info
 
-### Runtime
+### Runtime
 
 0. (first sync cpu-gpu object changes?)
 1. for each instance cull in compute (reduce as much as possible) (go trough instance buffer and write survived ids into new buffer)
