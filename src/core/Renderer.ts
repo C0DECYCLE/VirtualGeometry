@@ -8,20 +8,32 @@ import { EmptyCallback, Nullable, float } from "../utils.type.js";
 import { Camera } from "../components/Camera.js";
 import { Controller } from "../components/Controller.js";
 import { WebGPURequirements } from "../constants.js";
-import { GeometryHandler } from "./GeometryHandler.js";
+import { GeometryHandler } from "../handlers/GeometryHandler.js";
 import { Analytics } from "../components/Analytics.js";
-import { UniformsHandler } from "./UniformsHandler.js";
-import { EntityHandler } from "./EntityHandler.js";
-import { DrawHandler } from "./DrawHandler.js";
-import { ShaderHandler } from "./ShaderHandler.js";
+import { UniformHandler } from "../handlers/UniformHandler.js";
+import { EntityHandler } from "../handlers/EntityHandler.js";
+import { DrawHandler } from "../handlers/DrawHandler.js";
+import { ShaderHandler } from "../handlers/ShaderHandler.js";
+import { TextureHandler } from "../handlers/TextureHandler.js";
+import { AttachmentHandler } from "../handlers/AttachmentHandler.js";
+import { PipelineHandler } from "../handlers/PipelineHandler.js";
+import { BindGroupHandler } from "../handlers/BindGroupHandler.js";
+import { GeometryKey } from "../core.type.js";
+import { Entity } from "./Entity.js";
 
 export class Renderer {
     public readonly analytics: Analytics;
-    public readonly uniformsHandler: UniformsHandler;
-    public readonly geometryHandler: GeometryHandler;
-    public readonly entityHandler: EntityHandler;
-    public readonly shaderHandler: ShaderHandler;
-    public readonly drawHandler: DrawHandler;
+    public readonly handlers: {
+        uniform: UniformHandler;
+        geometry: GeometryHandler;
+        entity: EntityHandler;
+        shader: ShaderHandler;
+        texture: TextureHandler;
+        attachment: AttachmentHandler;
+        pipeline: PipelineHandler;
+        bindGroup: BindGroupHandler;
+        draw: DrawHandler;
+    };
     private camera: Nullable<Camera>;
     private control: Nullable<Controller>;
 
@@ -34,13 +46,19 @@ export class Renderer {
     private isPrepared: boolean;
 
     public constructor() {
-        this.analytics = new Analytics();
-        this.uniformsHandler = new UniformsHandler();
-        this.geometryHandler = new GeometryHandler();
-        this.entityHandler = new EntityHandler(this);
-        this.shaderHandler = new ShaderHandler();
-        this.drawHandler = new DrawHandler(this);
         assert(navigator.gpu);
+        this.analytics = new Analytics();
+        this.handlers = {
+            uniform: new UniformHandler(),
+            geometry: new GeometryHandler(),
+            entity: new EntityHandler(this),
+            shader: new ShaderHandler(),
+            texture: new TextureHandler(),
+            attachment: new AttachmentHandler(this),
+            pipeline: new PipelineHandler(this),
+            bindGroup: new BindGroupHandler(this),
+            draw: new DrawHandler(this),
+        };
         this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
         this.canvas = null;
         this.adapter = null;
@@ -53,20 +71,20 @@ export class Renderer {
         return this.isPrepared;
     }
 
+    public async import(key: GeometryKey, path: string): Promise<void> {
+        await this.handlers.geometry.import(key, path);
+    }
+
     public async prepare(): Promise<void> {
         assert(!this.isPrepared);
         await this.prepareGPU();
         assert(this.device);
         this.analytics.prepare(this.device);
-        this.uniformsHandler.prepare(this.device);
-        this.geometryHandler.prepare(this.device);
-        this.entityHandler.prepare();
-        await this.shaderHandler.prepare(this.device);
-        await this.drawHandler.prepare();
+        await this.prepareHandlers();
         this.prepareCameraControl();
         this.isPrepared = true;
         /////
-        this.drawHandler.synchronize(this.geometryHandler.count.clusters);
+        this.handlers.draw.synchronize(this.handlers.geometry.count.clusters);
     }
     private async prepareGPU(): Promise<void> {
         this.canvas = this.createCanvas();
@@ -121,11 +139,28 @@ export class Renderer {
         return this.context.getCurrentTexture().createView();
     }
 
+    private async prepareHandlers(): Promise<void> {
+        assert(this.device && this.canvas);
+        this.handlers.uniform.prepare(this.device);
+        this.handlers.geometry.prepare(this.device);
+        this.handlers.entity.prepare();
+        await this.handlers.shader.prepare(this.device);
+        this.handlers.texture.prepare(this.device, this.canvas);
+        this.handlers.attachment.prepare();
+        await this.handlers.pipeline.prepare();
+        this.handlers.bindGroup.prepare();
+        await this.handlers.draw.prepare();
+    }
+
     private prepareCameraControl(): void {
         assert(this.canvas);
         this.camera = new Camera(this.canvas.width / this.canvas.height, 1000);
         this.camera.position.set(0, 0, 5);
         this.control = new Controller(this.canvas, this.camera);
+    }
+
+    public add(entity: Entity): Entity {
+        return this.handlers.entity.add(entity);
     }
 
     public run(update?: EmptyCallback): void {
@@ -147,11 +182,10 @@ export class Renderer {
     }
 
     private synchronize(): void {
-        assert(this.control && this.camera);
+        assert(this.control && this.camera && this.device);
         this.control.update();
-        this.camera.update().store(this.uniformsHandler.data, 0);
-        assert(this.device);
-        this.uniformsHandler.synchronize(this.device);
+        this.camera.update().store(this.handlers.uniform.data, 0);
+        this.handlers.uniform.synchronize(this.device);
     }
 
     private render(): void {
@@ -159,7 +193,7 @@ export class Renderer {
         const encoder: GPUCommandEncoder = this.device.createCommandEncoder({
             label: "command-encoder",
         } as GPUObjectDescriptorBase);
-        this.drawHandler.render(encoder);
+        this.handlers.draw.render(encoder);
         this.analytics.resolve(encoder);
         this.device.queue.submit([encoder.finish()]);
     }

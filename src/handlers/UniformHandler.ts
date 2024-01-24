@@ -7,7 +7,7 @@ import { UniformsLayout } from "../constants.js";
 import { assert } from "../utilities/utils.js";
 import { Nullable } from "../utils.type.js";
 
-export class UniformsHandler {
+export class UniformHandler {
     public readonly data: Float32Array;
     public buffer: Nullable<GPUBuffer>;
 

@@ -23,12 +23,12 @@ export class Triangle {
         clusterCount: Undefinable<ClusterCount>,
         vertices: [Vertex, Vertex, Vertex],
     ) {
+        assert(vertices.length === 3);
         this.inHandlerId = handlerCount.registerTriangle();
         this.inGeometryId = geometryCount.registerTriangle();
         if (clusterCount) {
             this.inClusterId = clusterCount.registerTriangle();
         }
-        assert(vertices.length === 3);
         this.vertices = vertices;
         this.adjacent = new Set<Triangle>();
     }

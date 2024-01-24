@@ -24,10 +24,10 @@ export class Cluster {
         triangles: Triangle[],
         center: ClusterCenter,
     ) {
+        assert(triangles.length <= ClusterTrianglesLimit);
         this.inHandlerId = handlerCount.registerCluster();
         this.inGeometryId = geometryCount.registerCluster();
         this.count = new ClusterCount(0, 0);
-        assert(triangles.length <= ClusterTrianglesLimit);
         this.triangles = this.registerTriangles(triangles);
         this.bounds = this.computeBounds(center);
     }

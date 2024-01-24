@@ -22,12 +22,12 @@ export class Vertex {
         clusterCount: Undefinable<ClusterCount>,
         data: Float32Array,
     ) {
+        assert(data.length >= 3);
         this.inHandlerId = handlerCount.registerVertex();
         this.inGeometryId = geometryCount.registerVertex();
         if (clusterCount) {
             this.inClusterId = clusterCount.registerVertex();
         }
-        assert(data.length >= 3);
         this.position = new Vec3(data[0], data[1], data[2]);
     }
 

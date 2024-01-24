@@ -6,8 +6,8 @@
 import { EntityLimit, EntityStride } from "../constants.js";
 import { assert } from "../utilities/utils.js";
 import { Nullable, int } from "../utils.type.js";
-import { Entity } from "./Entity.js";
-import { Renderer } from "./Renderer.js";
+import { Entity } from "../core/Entity.js";
+import { Renderer } from "../core/Renderer.js";
 
 export class EntityHandler {
     private readonly renderer: Renderer;
@@ -35,7 +35,7 @@ export class EntityHandler {
 
     public add(entity: Entity): Entity {
         assert(this.renderer.isReady());
-        assert(this.renderer.geometryHandler.exists(entity.key));
+        assert(this.renderer.handlers.geometry.exists(entity.key));
         assert(!this.list.includes(entity));
         this.list.push(entity);
         this.synchronize(); //entity doesnt get updated!

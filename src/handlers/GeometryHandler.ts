@@ -6,13 +6,12 @@
 import { OBJParseResult, OBJParser } from "../components/OBJParser.js";
 import { VertexStride } from "../constants.js";
 import { GeometryKey } from "../core.type.js";
-import { assert } from "../utilities/utils.js";
 import { Nullable, int } from "../utils.type.js";
-import { Cluster } from "./Cluster.js";
-import { GeometryHandlerCount } from "./Counts.js";
-import { Geometry } from "./Geometry.js";
-import { Triangle } from "./Triangle.js";
-import { Vertex } from "./Vertex.js";
+import { Cluster } from "../core/Cluster.js";
+import { GeometryHandlerCount } from "../core/Counts.js";
+import { Geometry } from "../core/Geometry.js";
+import { Triangle } from "../core/Triangle.js";
+import { Vertex } from "../core/Vertex.js";
 
 export class GeometryHandler {
     public readonly count: GeometryHandlerCount;

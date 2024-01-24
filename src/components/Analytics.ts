@@ -62,11 +62,11 @@ export class Analytics {
     }
 
     public postFrame(now: float): void {
+        assert(this.timings);
         this.stats.time("cpu delta", "cpu delta");
         this.deltas.cpu.sample(this.stats.get("cpu delta")!);
         this.stats.set("frame delta", now - this.stats.get("frame delta")!);
         this.deltas.frame.sample(this.stats.get("frame delta")!);
-        assert(this.timings);
         this.timings.gpu.readback((ms: float) => {
             this.stats.set("gpu delta", ms);
             this.deltas.gpu.sample(ms);
