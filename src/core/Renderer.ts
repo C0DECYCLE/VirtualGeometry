@@ -159,8 +159,8 @@ export class Renderer {
         this.control = new Controller(this.canvas, this.camera);
     }
 
-    public add(entity: Entity): Entity {
-        return this.handlers.entity.add(entity);
+    public add(entity: Entity): void {
+        entity.add(this.handlers.entity);
     }
 
     public run(update?: EmptyCallback): void {
@@ -186,6 +186,7 @@ export class Renderer {
         this.control.update();
         this.camera.update().store(this.handlers.uniform.data, 0);
         this.handlers.uniform.synchronize(this.device);
+        this.handlers.entity.synchronize();
     }
 
     private render(): void {

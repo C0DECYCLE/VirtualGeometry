@@ -42,12 +42,20 @@ export class Vec3 {
         this.isDirty = true;
     }
 
-    public constructor(x: float = 0, y: float = 0, z: float = 0) {
+    public constructor(x: Vec3 | float = 0, y: float = 0, z: float = 0) {
         this.isDirty = false;
         this.set(x, y, z);
     }
 
-    public set(x: float, y: float, z: float): Vec3 {
+    public set(x: Vec3 | float, y?: float, z?: float): Vec3 {
+        if (x instanceof Vec3) {
+            z = x.z;
+            y = x.y;
+            x = x.x;
+        } else if (y === undefined || z === undefined) {
+            z = x;
+            y = x;
+        }
         this.x = x;
         this.y = y;
         this.z = z;

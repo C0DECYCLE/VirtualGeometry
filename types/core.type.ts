@@ -26,3 +26,15 @@ export type ClusterBounds = {
 export type TriangleId = int;
 
 export type VertexId = int;
+
+export type EntityIndex = int;
+
+export type EntityChange = "NEW" | "UPDATE"; // | "DELETE"
+
+export type bytes = int;
+
+export type BufferWrite = {
+    bufferOffset: bytes;
+    dataOffset: int;
+    size: int;
+};
