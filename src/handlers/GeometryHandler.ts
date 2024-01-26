@@ -47,10 +47,31 @@ export class GeometryHandler {
     }
 
     private prepareBuffers(device: GPUDevice): void {
+        const { vertices, indices } = this.constructVerticesIndices();
+        this.verticesBuffer = device.createBuffer({
+            label: "general-vertices-buffer",
+            size: vertices.byteLength,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        } as GPUBufferDescriptor);
+        device.queue.writeBuffer(this.verticesBuffer, 0, vertices);
+        this.indicesBuffer = device.createBuffer({
+            label: "general-indices-buffer",
+            size: indices.byteLength,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        } as GPUBufferDescriptor);
+        device.queue.writeBuffer(this.indicesBuffer, 0, indices);
+    }
+
+    private constructVerticesIndices(): {
+        vertices: Float32Array;
+        indices: Uint32Array;
+    } {
         const vertices: Float32Array = new Float32Array(
             this.count.vertices * VertexStride,
         );
-        const indices: Uint32Array = new Uint32Array(this.count.triangles * 3);
+        const indices: Uint32Array = new Uint32Array(
+            this.count.clusters * 128 * 3,
+        );
         let clusterIndex: int = 0;
         for (let i: int = 0; i < this.geometries.length; i++) {
             const geometry: Geometry = this.geometries[i];
@@ -65,24 +86,13 @@ export class GeometryHandler {
                             vertex.inHandlerId * VertexStride,
                         );
                         indices[clusterIndex * 128 * 3 + k * 3 + l] =
-                            vertex.inHandlerId; //no sort by cluster!
+                            vertex.inHandlerId;
                     }
                 }
                 clusterIndex++;
             }
         }
-        this.verticesBuffer = device.createBuffer({
-            label: "general-vertices-buffer",
-            size: vertices.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        } as GPUBufferDescriptor);
-        device.queue.writeBuffer(this.verticesBuffer, 0, vertices);
-        this.indicesBuffer = device.createBuffer({
-            label: "general-indices-buffer",
-            size: indices.byteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        } as GPUBufferDescriptor);
-        device.queue.writeBuffer(this.indicesBuffer, 0, indices);
+        return { vertices, indices };
     }
 
     public exists(key: GeometryKey): boolean {

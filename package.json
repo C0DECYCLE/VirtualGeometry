@@ -11,6 +11,8 @@
     "author": "Noah Mattia Bussinger",
     "dependencies": {
         "@webgpu/types": "^0.1.40",
+        "bunny": "^1.0.1",
+        "mesh-simplify": "^2.0.0",
         "typescript": "^5.3.3"
     }
 }

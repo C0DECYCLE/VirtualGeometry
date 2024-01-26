@@ -6,7 +6,7 @@
 import { VertexId } from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
-import { Undefinable } from "../utils.type.js";
+import { Undefinable, float } from "../utils.type.js";
 import { ClusterCount, GeometryCount, GeometryHandlerCount } from "./Counts.js";
 
 export class Vertex {
@@ -20,7 +20,7 @@ export class Vertex {
         handlerCount: GeometryHandlerCount,
         geometryCount: GeometryCount,
         clusterCount: Undefinable<ClusterCount>,
-        data: Float32Array,
+        data: float[] | Float32Array,
     ) {
         assert(data.length >= 3);
         this.inHandlerId = handlerCount.registerVertex();

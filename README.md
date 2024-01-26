@@ -21,6 +21,7 @@
 -   https://discourse.threejs.org/t/virtually-geometric/28420/40
 -   https://jcgt.org/published/0012/02/01/
 -   https://www.youtube.com/watch?v=7JEHPvSGaX8
+-   https://github.com/OmarShehata/webgpu-compute-rasterizer/blob/main/how-to-build-a-compute-rasterizer.md
 
 ## Idea
 
@@ -71,6 +72,7 @@
 -   make debug mode for freezing and also debug shadings (diffrenet ids diffrent colors etc)
 -   vertex, triangle, cluster, geometry class make abstraction and id types, then make good renderer and just schedule the normal / all clusters
 -   then do gpu culling etc, then merge and simplify and smart schedule
+-   atomic also on arrays!
 
 ### TODO
 

@@ -4,12 +4,23 @@
  */
 
 import { OBJParseResult } from "../components/OBJParser.js";
-import { ClusterTrianglesLimit, VertexStride } from "../constants.js";
-import { ClusterCenter, GeometryId, GeometryKey } from "../core.type.js";
+import {
+    ClusterSimplifyTryLimit,
+    ClusterTrianglesLimit,
+    VertexStride,
+} from "../constants.js";
+import {
+    ClusterCenter,
+    GeometryData,
+    GeometryId,
+    GeometryKey,
+    VertexId,
+} from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { log, warn } from "../utilities/logger.js";
+import { simplify } from "../utilities/simplify.js";
 import { assert, dotit, swapRemove } from "../utilities/utils.js";
-import { Undefinable, float, int } from "../utils.type.js";
+import { Nullable, Undefinable, float, int } from "../utils.type.js";
 import { Cluster } from "./Cluster.js";
 import { GeometryCount, GeometryHandlerCount } from "./Counts.js";
 import { Triangle } from "./Triangle.js";
@@ -36,6 +47,7 @@ export class Geometry {
 
         const pre: float = performance.now();
         this.clusters = this.generateClusters(handlerCount, parse);
+        this.mergeSimplifyClusters(handlerCount);
         log(
             this.key,
             ":",
@@ -242,5 +254,171 @@ export class Geometry {
             }
         }
         return { index: indexNearest!, nearest: nearest! };
+    }
+
+    private mergeSimplifyClusters(handlerCount: GeometryHandlerCount): void {
+        assert(this.clusters);
+        const layer: Cluster[] = [];
+        for (let i: int = 0; i < Math.ceil(this.clusters.length / 2); i++) {
+            let bases: Cluster[] = [];
+            if (this.clusters[i * 2 + 0]) {
+                bases.push(this.clusters[i * 2 + 0]);
+            }
+            if (this.clusters[i * 2 + 1]) {
+                bases.push(this.clusters[i * 2 + 1]);
+            }
+            layer.push(this.mergeSimplify(handlerCount, bases));
+        }
+        this.clusters.push(...layer);
+    }
+
+    private mergeSimplify(
+        handlerCount: GeometryHandlerCount,
+        clusters: Cluster[],
+    ): Cluster {
+        assert(clusters.length > 0);
+        //let pre: float = performance.now();
+        const data: GeometryData = this.merge(clusters);
+        //log("merge", dotit(performance.now() - pre), "ms");
+        let result: GeometryData = data;
+        if (clusters.length > 1) {
+            //pre = performance.now();
+            result = this.simplify(data, clusters.length);
+            //log("simplify", dotit(performance.now() - pre), "ms");
+        }
+        //pre = performance.now();
+        const cluster: Cluster = this.clusterize(handlerCount, result);
+        //log("clusterize", dotit(performance.now() - pre), "ms");
+        //log(clusters[0], cluster);
+        return cluster;
+    }
+
+    private merge(clusters: Cluster[]): GeometryData {
+        const positions: [float, float, float][] = [];
+        const cells: [VertexId, VertexId, VertexId][] = [];
+        for (let i: int = 0; i < clusters.length; i++) {
+            const triangles: Triangle[] = clusters[i].triangles;
+            for (let j: int = 0; j < triangles.length; j++) {
+                const index: int = positions.length;
+                positions.push(
+                    triangles[j].vertices[0].position.toArray(),
+                    triangles[j].vertices[1].position.toArray(),
+                    triangles[j].vertices[2].position.toArray(),
+                );
+                cells.push([index + 0, index + 1, index + 2]);
+            }
+        }
+        return this.uniquifyData({ positions, cells });
+    }
+
+    private uniquifyData(data: GeometryData): GeometryData {
+        const uniques: [float, float, float][] = [];
+        for (let i: int = 0; i < data.positions.length; i++) {
+            const candidate: [float, float, float] = data.positions[i];
+            const duplicate: Nullable<int> = this.findDuplicate(
+                uniques,
+                candidate,
+            );
+            if (duplicate === null) {
+                this.replaceMatching(data.cells, i, uniques.length);
+                uniques.push(candidate);
+            } else {
+                this.replaceMatching(data.cells, i, duplicate);
+            }
+        }
+        data.positions = uniques;
+        return data;
+    }
+
+    private findDuplicate(
+        uniques: [float, float, float][],
+        candidate: [float, float, float],
+    ): Nullable<int> {
+        for (let i: int = 0; i < uniques.length; i++) {
+            const unique: [float, float, float] = uniques[i];
+            if (
+                candidate[0] === unique[0] &&
+                candidate[1] === unique[1] &&
+                candidate[2] === unique[2]
+            ) {
+                return i;
+            }
+        }
+        return null;
+    }
+
+    private replaceMatching(
+        cells: [VertexId, VertexId, VertexId][],
+        match: int,
+        replace: int,
+    ): void {
+        if (match === replace) {
+            return;
+        }
+        for (let i: int = 0; i < cells.length; i++) {
+            if (cells[i][0] === match) {
+                cells[i][0] = replace;
+            }
+            if (cells[i][1] === match) {
+                cells[i][1] = replace;
+            }
+            if (cells[i][2] === match) {
+                cells[i][2] = replace;
+            }
+        }
+    }
+
+    private simplify(data: GeometryData, divide: int): GeometryData {
+        //log(data.positions.length);
+        let target: int = Math.ceil(data.positions.length / divide);
+        let i: int = 0;
+        let result: GeometryData;
+        while (true) {
+            result = simplify(data)(target);
+            let diff: int = result.cells.length - 128;
+            //log(target, result, diff);
+            if (diff <= 0 && Math.abs(diff) <= 3) {
+                break;
+            }
+            target -= Math.ceil(diff / divide);
+            i++;
+            if (i > ClusterSimplifyTryLimit) {
+                warn("ClusterSimplifyTryLimit hit!");
+                break;
+            }
+        }
+        return result;
+    }
+
+    private clusterize(
+        handlerCount: GeometryHandlerCount,
+        data: GeometryData,
+    ): Cluster {
+        const vertices: Vertex[] = [];
+        for (let i: int = 0; i < data.positions.length; i++) {
+            vertices.push(
+                new Vertex(
+                    handlerCount,
+                    this.count,
+                    undefined,
+                    data.positions[i],
+                ),
+            );
+        }
+        const triangles: Triangle[] = [];
+        for (let i: int = 0; i < data.cells.length; i++) {
+            triangles.push(
+                new Triangle(handlerCount, this.count, undefined, [
+                    vertices[data.cells[i][0]],
+                    vertices[data.cells[i][1]],
+                    vertices[data.cells[i][2]],
+                ]),
+            );
+        }
+        return new Cluster(handlerCount, this.count, triangles, {
+            sum: new Vec3(),
+            n: 0,
+            center: new Vec3(),
+        } as ClusterCenter);
     }
 }

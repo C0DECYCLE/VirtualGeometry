@@ -214,6 +214,10 @@ export class Vec3 {
         };
     }
 
+    public toArray(): [float, float, float] {
+        return [this.x, this.y, this.z];
+    }
+
     public toString(): string {
         return JSON.stringify(this);
     }

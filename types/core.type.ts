@@ -10,6 +10,11 @@ export type GeometryId = int;
 
 export type GeometryKey = string;
 
+export type GeometryData = {
+    positions: [float, float, float][];
+    cells: [VertexId, VertexId, VertexId][];
+};
+
 export type ClusterId = int;
 
 export type ClusterCenter = {
