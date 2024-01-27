@@ -47,7 +47,7 @@ export class Geometry {
 
         const pre: float = performance.now();
         this.clusters = this.generateClusters(handlerCount, parse);
-        this.mergeSimplifyClusters(handlerCount);
+        //this.mergeSimplifyClusters(handlerCount);
         log(
             this.key,
             ":",
@@ -258,6 +258,7 @@ export class Geometry {
 
     private mergeSimplifyClusters(handlerCount: GeometryHandlerCount): void {
         assert(this.clusters);
+        /*
         const layer: Cluster[] = [];
         for (let i: int = 0; i < Math.ceil(this.clusters.length / 2); i++) {
             let bases: Cluster[] = [];
@@ -270,6 +271,10 @@ export class Geometry {
             layer.push(this.mergeSimplify(handlerCount, bases));
         }
         this.clusters.push(...layer);
+        */
+        this.clusters.push(
+            this.mergeSimplify(handlerCount, [this.clusters[1]]),
+        );
     }
 
     private mergeSimplify(

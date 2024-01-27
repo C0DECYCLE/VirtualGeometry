@@ -44,7 +44,7 @@ export class PipelineHandler {
             } as GPUFragmentState,
             primitive: {
                 topology: "triangle-list",
-                cullMode: "back",
+                cullMode: "none", //"back",
             } as GPUPrimitiveState,
             depthStencil: {
                 depthWriteEnabled: true,

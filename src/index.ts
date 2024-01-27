@@ -8,7 +8,7 @@ import { Renderer } from "./core/Renderer.js";
 import { log } from "./utilities/logger.js";
 
 const renderer: Renderer = new Renderer();
-await renderer.import("test", "./resources/bunlow.obj");
+await renderer.import("test", "./resources/suzanne.obj");
 await renderer.prepare();
 renderer.add(new Entity("test"));
 log(renderer);
