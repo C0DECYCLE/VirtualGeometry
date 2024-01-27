@@ -82,16 +82,12 @@
 ### TODO
 
 -   Entity deletion
--   refactor geometry thing where it stores a map of all vertices, edges, triangles
--   refactor clustering to alternative method and see if faster
--   refactor geomhandler buffer building based on geometry vertices and triangles smarter less redunand with manual i counter;
--   restart own merge and simplification
 
 ### Clustering
 
 0.  all vertices into array and triangles with links to vertices into arry
 1.  compute all adjacent triangles for each triangle. adjacent if they share min 2 vertices
-    or alternativly if they share a edge (register all edges from triangles without duplicates and register in edge which triangle its a part of, if edge is part of 2 triangles write to those triangles that they are adjacent)
+    or alternativly if they share a edge (register all edges from triangles without duplicates and register in edge which triangle its a part of, if edge is part of 2 triangles write to those triangles that they are adjacent) or triangle register edges and later find adjacent by looking which triangles my edges also have
 2.  put all unclustered triangles into a queue, start with a random triangle, while cluster
     is not full and there are unclustered triangles left add adjacent triangles of the triangles already in the cluster to the cluster. if no more adjacent add one from the unused queue. in any case add the one next which the least increases the bounding sphere of the cluster. when finish with a cluster use one adjacent to the outside as the start for the next.
 
@@ -99,6 +95,6 @@
 
 0.  merge by just merging the list of triangles
 1.  first construct map of all vertices and triangles by id. then register all edges of all
-    triangles into map with key based on the ids of the vertices. write into each edge which triangles is it a part off, if edge is part of only 1 triangle its a border edge. mark the vertices of border edges as border vertices. lock position and deletion of border vertices.
+    triangles into map with key based on the ids of the vertices. write into each edge which triangles is it a part off, if edge is part of only 1 triangle its a border edge. (mark the vertices of border edges as border vertices.)? "lock" aka dont change position and deletion of border vertices.
 2.  simplification only inside of mesh meaning dont simplify a border edge. simplification  
     happens by edge collapse meaning merge the vertices of the edge together and update the vertices edges triangle. merge them togther at the average position aka middle? middle is the thing about average vs median vs error quadtratic. i think always this will result in 2 less triangles. if one of the vertices is a border vertex then not collapse to middle but position of border vertex. decide which edges to collapse by the distance between the edges? smallest edge distances first? repeat this process until there are <= 128 triangles left.

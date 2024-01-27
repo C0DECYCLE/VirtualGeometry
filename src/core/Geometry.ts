@@ -10,6 +10,7 @@ import {
     EdgeIdentifier,
     GeometryId,
     GeometryKey,
+    VertexId,
 } from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { log, warn } from "../utilities/logger.js";
@@ -38,10 +39,10 @@ export class Geometry {
         const pre: float = performance.now();
 
         this.vertices = this.extractVertices(count, parse);
-        const { triangles, edges } = this.extractTrianglesEdges(count, parse);
+        const triangles = this.extractTrianglesEdges(count, parse);
         this.clusters = this.clusterize(count, triangles);
+        this.buildHirarchy(count);
 
-        log(this.vertices, triangles, edges, this.clusters, count);
         log(
             this.key,
             ":",
@@ -70,10 +71,7 @@ export class Geometry {
     private extractTrianglesEdges(
         count: Count,
         parse: OBJParseResult,
-    ): {
-        triangles: Triangle[];
-        edges: Map<EdgeIdentifier, Edge>;
-    } {
+    ): Triangle[] {
         assert(this.vertices && parse.indices && parse.indicesCount);
         const triangles: Triangle[] = [];
         const stride: int = 3;
@@ -91,7 +89,7 @@ export class Geometry {
             triangles.push(triangle);
             this.registerEdges(edges, triangle);
         }
-        return { triangles, edges };
+        return triangles;
     }
 
     private registerEdges(
@@ -175,7 +173,7 @@ export class Geometry {
                 suggestion = candidate;
                 break;
             }
-            clusters.push(new Cluster(count, group));
+            clusters.push(new Cluster(count, group /*center*/));
         }
         return clusters;
     }
@@ -252,336 +250,108 @@ export class Geometry {
         return { index: indexNearest!, nearest: nearest! };
     }
 
-    ///////////////////////////////////////////////////
-    /*
-    private generateClusters(
-        handlerCount: GeometryHandlerCount,
-        parse: OBJParseResult,
-    ): Cluster[] {
-        const vertices: Vertex[] = this.extractVertices(handlerCount, parse);
-        const triangles: Triangle[] = this.generateTriangles(
-            handlerCount,
-            parse,
-            vertices,
-        );
-        this.computeAdjacent(triangles);
-        const clusters: Cluster[] = [];
-        const unused: Triangle[] = [...triangles];
-        let suggestion: Undefinable<Triangle> = undefined;
-        while (unused.length !== 0) {
-            const group: Triangle[] = [];
-            const candidates: Triangle[] = [];
-            let center: Undefinable<ClusterCenter> = undefined;
-            const first: Triangle = this.popFirst(suggestion, unused);
-            suggestion = undefined;
-            center = this.register(first, group, candidates, center);
-            while (
-                group.length < ClusterTrianglesLimit &&
-                unused.length !== 0
-            ) {
-                if (candidates.length === 0) {
-                    const { index, nearest } = this.findNearest(center, unused);
-                    swapRemove(unused, index);
-                    center = this.register(nearest, group, candidates, center);
-                    continue;
-                }
-                const { index, nearest } = this.findNearest(center, candidates);
-                swapRemove(candidates, index);
-                const nearestInUnusedAt: int = unused.indexOf(nearest);
-                if (nearestInUnusedAt === -1) {
-                    continue;
-                }
-                swapRemove(unused, nearestInUnusedAt);
-                center = this.register(nearest, group, candidates, center);
-            }
-            for (let i: int = 0; i < candidates.length; i++) {
-                const candidate: Triangle = candidates[i];
-                if (!unused.includes(candidate)) {
-                    continue;
-                }
-                suggestion = candidate;
-                break;
-            }
-            clusters.push(new Cluster(handlerCount, this.count, group, center));
-        }
-        return clusters;
+    private buildHirarchy(count: Count): void {
+        this.clusters.push(this.mergeSimplify(count, [this.clusters[1]]));
     }
 
-    private computeAdjacent(triangles: Triangle[]): void {
+    private mergeSimplify(count: Count, clusters: Cluster[]): Cluster {
+        assert(clusters.length > 0);
+
+        const { triangles, edges } = this.deepMerge(count, clusters);
+        edges.sort((a: Edge, b: Edge) => a.lengthQuadratic - b.lengthQuadratic);
+        const borderVertices: Set<VertexId> = this.findBorderVertices(edges);
+
+        const collapse: Edge = edges.shift()!;
+        assert(!collapse.isBorder());
+
+        const replacement: Vertex = this.createReplacement(
+            count,
+            collapse,
+            borderVertices,
+        );
+
+        const remove: int[] = [];
         for (let i: int = 0; i < triangles.length; i++) {
-            const target: Triangle = triangles[i];
-            if (target.adjacent.size > 2) {
+            const triangle: Triangle = triangles[i];
+            if (collapse.triangles.includes(triangle)) {
+                remove.push(i);
                 continue;
             }
-            for (let j: int = 0; j < triangles.length; j++) {
-                if (i === j) {
-                    continue;
-                }
-                const candidate: Triangle = triangles[j];
-                let matching: int = 0;
-                if (target.vertices.includes(candidate.vertices[0])) {
-                    matching++;
-                }
-                if (target.vertices.includes(candidate.vertices[1])) {
-                    matching++;
-                }
-                if (target.vertices.includes(candidate.vertices[2])) {
-                    matching++;
-                }
-                if (matching > 1) {
-                    target.adjacent.add(candidate);
-                    candidate.adjacent.add(target);
-                }
-                if (target.adjacent.size > 2) {
-                    break;
-                }
+            const aInTriangle = triangle.vertices.indexOf(collapse.vertices[0]);
+            if (aInTriangle !== -1) {
+                triangle.vertices[aInTriangle] = replacement;
+            }
+            const bInTriangle = triangle.vertices.indexOf(collapse.vertices[1]);
+            if (bInTriangle !== -1) {
+                triangle.vertices[bInTriangle] = replacement;
             }
         }
-    }
 
-    private popFirst(
-        suggestion: Undefinable<Triangle>,
-        unused: Triangle[],
-    ): Triangle {
-        if (!suggestion) {
-            return unused.pop()!;
+        log(remove);
+        for (let i: int = remove.length - 1; i >= 0; i--) {
+            triangles.splice(remove[i], 1);
         }
-        const suggestionInUnusedAt: int = unused.indexOf(suggestion);
-        assert(suggestionInUnusedAt !== -1);
-        swapRemove(unused, suggestionInUnusedAt);
-        return suggestion;
+        //update the vertices, edges, triangles
+
+        //delete the two collapsed triangles from the triangles repo,
+        //from their edges which werent the collapsed one
+        //delete the collapsed edge from the edges repo
+
+        //collapse smallest first until there are <= 128 triangles left
+        return new Cluster(count, triangles);
     }
 
-    private register(
-        triangle: Triangle,
-        cluster: Triangle[],
-        candidates: Triangle[],
-        center?: ClusterCenter,
-    ): ClusterCenter {
-        cluster.push(triangle);
-        candidates.push(...triangle.adjacent);
-        return this.recomputeCenter(triangle, center);
-    }
-
-    private recomputeCenter(
-        joining: Triangle,
-        base?: ClusterCenter,
-    ): ClusterCenter {
-        const sum: Vec3 = base !== undefined ? base.sum.clone() : new Vec3();
-        sum.add(joining.vertices[0].position);
-        sum.add(joining.vertices[1].position);
-        sum.add(joining.vertices[2].position);
-        const n: int = (base !== undefined ? base.n : 0) + 3;
-        return {
-            sum: sum,
-            n: n,
-            center: sum.clone().scale(1 / n),
-        } as ClusterCenter;
-    }
-
-    private findNearest(
-        center: ClusterCenter,
-        candidates: Triangle[],
-    ): { index: int; nearest: Triangle } {
-        let indexNearest: Undefinable<int> = undefined;
-        let nearest: Undefinable<Triangle> = undefined;
-        let nearestQuadratic: float = Infinity;
-        for (let i: int = 0; i < candidates.length; i++) {
-            const candidate: Triangle = candidates[i];
-            const farestQuadratic: float = Math.max(
-                candidate.vertices[0].position
-                    .clone()
-                    .sub(center.center)
-                    .lengthQuadratic(),
-                candidate.vertices[1].position
-                    .clone()
-                    .sub(center.center)
-                    .lengthQuadratic(),
-                candidate.vertices[2].position
-                    .clone()
-                    .sub(center.center)
-                    .lengthQuadratic(),
-            );
-            if (farestQuadratic < nearestQuadratic) {
-                indexNearest = i;
-                nearest = candidate;
-                nearestQuadratic = farestQuadratic;
-            }
-        }
-        return { index: indexNearest!, nearest: nearest! };
-    }
-
-    private mergeSimplifyClusters(handlerCount: GeometryHandlerCount): void {
-        assert(this.clusters);
-        */
-    /*
-        const layer: Cluster[] = [];
-        for (let i: int = 0; i < Math.ceil(this.clusters.length / 2); i++) {
-            let bases: Cluster[] = [];
-            if (this.clusters[i * 2 + 0]) {
-                bases.push(this.clusters[i * 2 + 0]);
-            }
-            if (this.clusters[i * 2 + 1]) {
-                bases.push(this.clusters[i * 2 + 1]);
-            }
-            layer.push(this.mergeSimplify(handlerCount, bases));
-        }
-        this.clusters.push(...layer);
-        */
-    /*
-        this.clusters.push(
-            this.mergeSimplify(handlerCount, [this.clusters[1]]),
-        );
-    }
-
-    private mergeSimplify(
-        handlerCount: GeometryHandlerCount,
+    private deepMerge(
+        count: Count,
         clusters: Cluster[],
-    ): Cluster {
+    ): { triangles: Triangle[]; edges: Edge[] } {
         assert(clusters.length > 0);
-        //let pre: float = performance.now();
-        const data: GeometryData = this.merge(clusters);
-        //log("merge", dotit(performance.now() - pre), "ms");
-        let result: GeometryData = data;
-        if (clusters.length > 1) {
-            //pre = performance.now();
-            result = this.simplify(data, clusters.length);
-            //log("simplify", dotit(performance.now() - pre), "ms");
-        }
-        //pre = performance.now();
-        const cluster: Cluster = this.clusterize(handlerCount, result);
-        //log("clusterize", dotit(performance.now() - pre), "ms");
-        //log(clusters[0], cluster);
-        return cluster;
-    }
-
-    private merge(clusters: Cluster[]): GeometryData {
-        const positions: [float, float, float][] = [];
-        const cells: [VertexId, VertexId, VertexId][] = [];
-        for (let i: int = 0; i < clusters.length; i++) {
-            const triangles: Triangle[] = clusters[i].triangles;
-            for (let j: int = 0; j < triangles.length; j++) {
-                const index: int = positions.length;
-                positions.push(
-                    triangles[j].vertices[0].position.toArray(),
-                    triangles[j].vertices[1].position.toArray(),
-                    triangles[j].vertices[2].position.toArray(),
-                );
-                cells.push([index + 0, index + 1, index + 2]);
-            }
-        }
-        return this.uniquifyData({ positions, cells });
-    }
-
-    private uniquifyData(data: GeometryData): GeometryData {
-        const uniques: [float, float, float][] = [];
-        for (let i: int = 0; i < data.positions.length; i++) {
-            const candidate: [float, float, float] = data.positions[i];
-            const duplicate: Nullable<int> = this.findDuplicate(
-                uniques,
-                candidate,
-            );
-            if (duplicate === null) {
-                this.replaceMatching(data.cells, i, uniques.length);
-                uniques.push(candidate);
-            } else {
-                this.replaceMatching(data.cells, i, duplicate);
-            }
-        }
-        data.positions = uniques;
-        return data;
-    }
-
-    private findDuplicate(
-        uniques: [float, float, float][],
-        candidate: [float, float, float],
-    ): Nullable<int> {
-        for (let i: int = 0; i < uniques.length; i++) {
-            const unique: [float, float, float] = uniques[i];
-            if (
-                candidate[0] === unique[0] &&
-                candidate[1] === unique[1] &&
-                candidate[2] === unique[2]
-            ) {
-                return i;
-            }
-        }
-        return null;
-    }
-
-    private replaceMatching(
-        cells: [VertexId, VertexId, VertexId][],
-        match: int,
-        replace: int,
-    ): void {
-        if (match === replace) {
-            return;
-        }
-        for (let i: int = 0; i < cells.length; i++) {
-            if (cells[i][0] === match) {
-                cells[i][0] = replace;
-            }
-            if (cells[i][1] === match) {
-                cells[i][1] = replace;
-            }
-            if (cells[i][2] === match) {
-                cells[i][2] = replace;
-            }
-        }
-    }
-
-    private simplify(data: GeometryData, divide: int): GeometryData {
-        //log(data.positions.length);
-        let target: int = Math.ceil(data.positions.length / divide);
-        let i: int = 0;
-        let result: GeometryData;
-        while (true) {
-            result = simplify(data)(target);
-            let diff: int = result.cells.length - 128;
-            //log(target, result, diff);
-            if (diff <= 0 && Math.abs(diff) <= 3) {
-                break;
-            }
-            target -= Math.ceil(diff / divide);
-            i++;
-            if (i > ClusterSimplifyTryLimit) {
-                warn("ClusterSimplifyTryLimit hit!");
-                break;
-            }
-        }
-        return result;
-    }
-
-    private clusterize(
-        handlerCount: GeometryHandlerCount,
-        data: GeometryData,
-    ): Cluster {
-        const vertices: Vertex[] = [];
-        for (let i: int = 0; i < data.positions.length; i++) {
-            vertices.push(
-                new Vertex(
-                    handlerCount,
-                    this.count,
-                    undefined,
-                    data.positions[i],
-                ),
-            );
-        }
         const triangles: Triangle[] = [];
-        for (let i: int = 0; i < data.cells.length; i++) {
-            triangles.push(
-                new Triangle(handlerCount, this.count, undefined, [
-                    vertices[data.cells[i][0]],
-                    vertices[data.cells[i][1]],
-                    vertices[data.cells[i][2]],
-                ]),
-            );
+        const edges: Map<EdgeIdentifier, Edge> = new Map<
+            EdgeIdentifier,
+            Edge
+        >();
+        for (let i: int = 0; i < clusters.length; i++) {
+            const cluster: Cluster = clusters[i];
+            for (let j: int = 0; j < cluster.triangles.length; j++) {
+                const triangle: Triangle = new Triangle(count, [
+                    ...cluster.triangles[j].vertices,
+                ]);
+                triangles.push(triangle);
+                this.registerEdges(edges, triangle);
+            }
         }
-        return new Cluster(handlerCount, this.count, triangles, {
-            sum: new Vec3(),
-            n: 0,
-            center: new Vec3(),
-        } as ClusterCenter);
+        return { triangles, edges: Array.from(edges.values()) };
     }
-    */
+
+    private findBorderVertices(edges: Edge[]): Set<VertexId> {
+        const vertices: Set<VertexId> = new Set<VertexId>();
+        for (let i: int = 0; i < edges.length; i++) {
+            const edge: Edge = edges[i];
+            if (edges[i].isBorder()) {
+                vertices.add(edge.vertices[0].id);
+                vertices.add(edge.vertices[1].id);
+            }
+        }
+        return vertices;
+    }
+
+    private createReplacement(
+        count: Count,
+        edge: Edge,
+        border: Set<VertexId>,
+    ): Vertex {
+        if (border.has(edge.vertices[0].id)) {
+            return edge.vertices[0];
+        } else if (border.has(edge.vertices[1].id)) {
+            return edge.vertices[1];
+        }
+        const position: Vec3 = new Vec3()
+            .copy(edge.vertices[0].position)
+            .add(edge.vertices[1].position)
+            .scale(0.5);
+        const vertex: Vertex = new Vertex(count, position.toArray());
+        this.vertices.push(vertex);
+        return vertex;
+    }
 }

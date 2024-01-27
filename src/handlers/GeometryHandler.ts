@@ -12,8 +12,6 @@ import { Count } from "../core/Count.js";
 import { Geometry } from "../core/Geometry.js";
 import { Triangle } from "../core/Triangle.js";
 import { Vertex } from "../core/Vertex.js";
-import { assert } from "../utilities/utils.js";
-import { log } from "../utilities/logger.js";
 
 export class GeometryHandler {
     public readonly count: Count;
@@ -73,31 +71,22 @@ export class GeometryHandler {
         const indices: Uint32Array = new Uint32Array(
             this.count.clusters * 128 * 3,
         );
-
         let clusterIndex: int = 0;
-
         for (let i: int = 0; i < this.geometries.length; i++) {
             const geometry: Geometry = this.geometries[i];
-
             for (let j: int = 0; j < geometry.vertices.length; j++) {
                 const vertex: Vertex = geometry.vertices[j];
-
                 vertex.position.store(vertices, vertex.id * VertexStride);
             }
-
             for (let j: int = 0; j < geometry.clusters.length; j++) {
                 const cluster: Cluster = geometry.clusters[j];
-
                 for (let k: int = 0; k < cluster.triangles.length; k++) {
                     const triangle: Triangle = cluster.triangles[k];
-
                     for (let l: int = 0; l < triangle.vertices.length; l++) {
                         const vertex: Vertex = triangle.vertices[l];
-
                         indices[clusterIndex * 128 * 3 + k * 3 + l] = vertex.id;
                     }
                 }
-
                 clusterIndex++;
             }
         }

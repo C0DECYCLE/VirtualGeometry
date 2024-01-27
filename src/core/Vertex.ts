@@ -11,7 +11,6 @@ import { Count } from "./Count.js";
 
 export class Vertex {
     public readonly id: VertexId;
-
     public readonly position: Vec3;
 
     public constructor(count: Count, data: float[] | Float32Array) {
