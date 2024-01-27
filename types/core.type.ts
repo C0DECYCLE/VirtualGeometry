@@ -30,6 +30,8 @@ export type ClusterBounds = {
 
 export type TriangleId = int;
 
+export type EdgeIdentifier = string; // VertexId-VertexId // first lower !
+
 export type VertexId = int;
 
 export type EntityIndex = int;

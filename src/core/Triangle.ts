@@ -5,36 +5,35 @@
 
 import { TriangleId } from "../core.type.js";
 import { assert } from "../utilities/utils.js";
-import { Undefinable } from "../utils.type.js";
-import { GeometryHandlerCount, GeometryCount, ClusterCount } from "./Counts.js";
+import { Count } from "./Count.js";
+import { Edge } from "./Edge.js";
 import { Vertex } from "./Vertex.js";
 
 export class Triangle {
-    public readonly inHandlerId: TriangleId;
-    public readonly inGeometryId: TriangleId;
-    public inClusterId: Undefinable<TriangleId>;
-
+    public readonly id: TriangleId;
     public readonly vertices: [Vertex, Vertex, Vertex];
-    public readonly adjacent: Set<Triangle>;
+    private readonly edges: Edge[];
 
-    public constructor(
-        handlerCount: GeometryHandlerCount,
-        geometryCount: GeometryCount,
-        clusterCount: Undefinable<ClusterCount>,
-        vertices: [Vertex, Vertex, Vertex],
-    ) {
+    public constructor(count: Count, vertices: [Vertex, Vertex, Vertex]) {
         assert(vertices.length === 3);
-        this.inHandlerId = handlerCount.registerTriangle();
-        this.inGeometryId = geometryCount.registerTriangle();
-        if (clusterCount) {
-            this.inClusterId = clusterCount.registerTriangle();
-        }
+        this.id = count.registerTriangle();
         this.vertices = vertices;
-        this.adjacent = new Set<Triangle>();
+        this.edges = [];
     }
 
-    public register(clusterCount: ClusterCount): void {
-        assert(this.inClusterId === undefined);
-        this.inClusterId = clusterCount.registerTriangle();
+    public registerEdge(edge: Edge): void {
+        assert(this.edges.length < 3);
+        this.edges.push(edge);
+    }
+
+    public getAdjacent(): Set<Triangle> {
+        assert(this.edges.length === 3);
+        const adjacent: Set<Triangle> = new Set<Triangle>([
+            ...this.edges[0].triangles,
+            ...this.edges[1].triangles,
+            ...this.edges[2].triangles,
+        ]);
+        adjacent.delete(this);
+        return adjacent;
     }
 }

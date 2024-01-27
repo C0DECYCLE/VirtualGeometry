@@ -8,21 +8,22 @@ import { VertexStride } from "../constants.js";
 import { GeometryKey } from "../core.type.js";
 import { Nullable, int } from "../utils.type.js";
 import { Cluster } from "../core/Cluster.js";
-import { GeometryHandlerCount } from "../core/Counts.js";
+import { Count } from "../core/Count.js";
 import { Geometry } from "../core/Geometry.js";
 import { Triangle } from "../core/Triangle.js";
 import { Vertex } from "../core/Vertex.js";
+import { assert } from "../utilities/utils.js";
+import { log } from "../utilities/logger.js";
 
 export class GeometryHandler {
-    public readonly count: GeometryHandlerCount;
-
+    public readonly count: Count;
     public readonly geometries: Geometry[];
 
     public verticesBuffer: Nullable<GPUBuffer>;
     public indicesBuffer: Nullable<GPUBuffer>;
 
     public constructor() {
-        this.count = new GeometryHandlerCount(0, 0, 0, 0);
+        this.count = new Count(0, 0, 0, 0);
         this.geometries = [];
         this.verticesBuffer = null;
         this.indicesBuffer = null;
@@ -33,7 +34,7 @@ export class GeometryHandler {
             await this.loadText(path),
             true,
         );
-        this.geometries.push(new Geometry(key, this.count, parse));
+        this.geometries.push(new Geometry(this.count, key, parse));
     }
 
     private async loadText(path: string): Promise<string> {
@@ -72,23 +73,31 @@ export class GeometryHandler {
         const indices: Uint32Array = new Uint32Array(
             this.count.clusters * 128 * 3,
         );
+
         let clusterIndex: int = 0;
+
         for (let i: int = 0; i < this.geometries.length; i++) {
             const geometry: Geometry = this.geometries[i];
+
+            for (let j: int = 0; j < geometry.vertices.length; j++) {
+                const vertex: Vertex = geometry.vertices[j];
+
+                vertex.position.store(vertices, vertex.id * VertexStride);
+            }
+
             for (let j: int = 0; j < geometry.clusters.length; j++) {
                 const cluster: Cluster = geometry.clusters[j];
+
                 for (let k: int = 0; k < cluster.triangles.length; k++) {
                     const triangle: Triangle = cluster.triangles[k];
+
                     for (let l: int = 0; l < triangle.vertices.length; l++) {
                         const vertex: Vertex = triangle.vertices[l];
-                        vertex.position.store(
-                            vertices,
-                            vertex.inHandlerId * VertexStride,
-                        );
-                        indices[clusterIndex * 128 * 3 + k * 3 + l] =
-                            vertex.inHandlerId;
+
+                        indices[clusterIndex * 128 * 3 + k * 3 + l] = vertex.id;
                     }
                 }
+
                 clusterIndex++;
             }
         }

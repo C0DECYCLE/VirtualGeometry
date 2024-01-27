@@ -6,35 +6,17 @@
 import { VertexId } from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
-import { Undefinable, float } from "../utils.type.js";
-import { ClusterCount, GeometryCount, GeometryHandlerCount } from "./Counts.js";
+import { float } from "../utils.type.js";
+import { Count } from "./Count.js";
 
 export class Vertex {
-    public readonly inHandlerId: VertexId;
-    public readonly inGeometryId: VertexId;
-    public inClusterId: Undefinable<VertexId>;
+    public readonly id: VertexId;
 
     public readonly position: Vec3;
 
-    public constructor(
-        handlerCount: GeometryHandlerCount,
-        geometryCount: GeometryCount,
-        clusterCount: Undefinable<ClusterCount>,
-        data: float[] | Float32Array,
-    ) {
+    public constructor(count: Count, data: float[] | Float32Array) {
         assert(data.length >= 3);
-        this.inHandlerId = handlerCount.registerVertex();
-        this.inGeometryId = geometryCount.registerVertex();
-        if (clusterCount) {
-            this.inClusterId = clusterCount.registerVertex();
-        }
+        this.id = count.registerVertex();
         this.position = new Vec3(data[0], data[1], data[2]);
-    }
-
-    public register(clusterCount: ClusterCount): void {
-        if (this.inClusterId !== undefined) {
-            return;
-        }
-        this.inClusterId = clusterCount.registerVertex();
     }
 }
