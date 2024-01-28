@@ -15,7 +15,7 @@ import {
 import { Vec3 } from "../utilities/Vec3.js";
 import { log, warn } from "../utilities/logger.js";
 import { assert, dotit, swapRemove } from "../utilities/utils.js";
-import { Undefinable, float, int } from "../utils.type.js";
+import { Nullable, Undefinable, float, int } from "../utils.type.js";
 import { Cluster } from "./Cluster.js";
 import { Count } from "./Count.js";
 import { Edge } from "./Edge.js";
@@ -123,6 +123,9 @@ export class Geometry {
         b: Vertex,
     ): void {
         const identifier: EdgeIdentifier = Edge.Identify(a, b);
+        if (triangle.hasEdge(identifier)) {
+            return;
+        }
         if (edges.has(identifier)) {
             const edge: Edge = edges.get(identifier)!;
             edge.triangles.push(triangle);
@@ -251,60 +254,34 @@ export class Geometry {
     }
 
     private buildHirarchy(count: Count): void {
-        this.clusters.push(this.mergeSimplify(count, [this.clusters[1]]));
+        this.clusters.push(
+            this.mergeSimplify(count, [this.clusters[0], this.clusters[1]]),
+            this.mergeSimplify(count, [this.clusters[2]]),
+            this.mergeSimplify(count, [this.clusters[3]]),
+            this.mergeSimplify(count, [this.clusters[4], this.clusters[5]]),
+            this.mergeSimplify(count, [this.clusters[6], this.clusters[7]]),
+        );
     }
 
     private mergeSimplify(count: Count, clusters: Cluster[]): Cluster {
         assert(clusters.length > 0);
-
         const { triangles, edges } = this.deepMerge(count, clusters);
-        edges.sort((a: Edge, b: Edge) => a.lengthQuadratic - b.lengthQuadratic);
-        const borderVertices: Set<VertexId> = this.findBorderVertices(edges);
-
-        const collapse: Edge = edges.shift()!;
-        assert(!collapse.isBorder());
-
-        const replacement: Vertex = this.createReplacement(
-            count,
-            collapse,
-            borderVertices,
-        );
-
-        const remove: int[] = [];
-        for (let i: int = 0; i < triangles.length; i++) {
-            const triangle: Triangle = triangles[i];
-            if (collapse.triangles.includes(triangle)) {
-                remove.push(i);
-                continue;
-            }
-            const aInTriangle = triangle.vertices.indexOf(collapse.vertices[0]);
-            if (aInTriangle !== -1) {
-                triangle.vertices[aInTriangle] = replacement;
-            }
-            const bInTriangle = triangle.vertices.indexOf(collapse.vertices[1]);
-            if (bInTriangle !== -1) {
-                triangle.vertices[bInTriangle] = replacement;
+        const border: Set<VertexId> = this.findBorderVertices(edges);
+        while (triangles.length > 128) {
+            try {
+                this.collapseSmallest(count, triangles, edges, border);
+            } catch (e) {
+                warn("collapsing stopped at", triangles.length, "triangles");
+                break;
             }
         }
-
-        log(remove);
-        for (let i: int = remove.length - 1; i >= 0; i--) {
-            triangles.splice(remove[i], 1);
-        }
-        //update the vertices, edges, triangles
-
-        //delete the two collapsed triangles from the triangles repo,
-        //from their edges which werent the collapsed one
-        //delete the collapsed edge from the edges repo
-
-        //collapse smallest first until there are <= 128 triangles left
         return new Cluster(count, triangles);
     }
 
     private deepMerge(
         count: Count,
         clusters: Cluster[],
-    ): { triangles: Triangle[]; edges: Edge[] } {
+    ): { triangles: Triangle[]; edges: Map<EdgeIdentifier, Edge> } {
         assert(clusters.length > 0);
         const triangles: Triangle[] = [];
         const edges: Map<EdgeIdentifier, Edge> = new Map<
@@ -321,14 +298,84 @@ export class Geometry {
                 this.registerEdges(edges, triangle);
             }
         }
-        return { triangles, edges: Array.from(edges.values()) };
+        return { triangles, edges };
     }
 
-    private findBorderVertices(edges: Edge[]): Set<VertexId> {
+    private collapseSmallest(
+        count: Count,
+        triangles: Triangle[],
+        edges: Map<EdgeIdentifier, Edge>,
+        border: Set<VertexId>,
+    ): void {
+        const collapse: Edge = this.getNextCollapse(edges, border);
+        const replacement: Vertex = this.createReplacement(
+            count,
+            collapse,
+            border,
+        );
+        const remove: int[] = [];
+        for (let i: int = 0; i < triangles.length; i++) {
+            const triangle: Triangle = triangles[i];
+            if (collapse.triangles.includes(triangle)) {
+                this.deleteBadEdges(triangle, collapse, edges);
+                remove.push(i);
+                continue;
+            }
+            const aInTriangle = triangle.vertices.indexOf(collapse.vertices[0]);
+            if (aInTriangle !== -1) {
+                this.deleteBadEdges(triangle, collapse, edges);
+                triangle.vertices[aInTriangle] = replacement;
+                this.registerEdges(edges, triangle);
+                continue;
+            }
+            const bInTriangle = triangle.vertices.indexOf(collapse.vertices[1]);
+            if (bInTriangle !== -1) {
+                this.deleteBadEdges(triangle, collapse, edges);
+                triangle.vertices[bInTriangle] = replacement;
+                this.registerEdges(edges, triangle);
+                continue;
+            }
+        }
+        for (let i: int = remove.length - 1; i >= 0; i--) {
+            triangles.splice(remove[i], 1);
+        }
+    }
+
+    private getNextCollapse(
+        edges: Map<EdgeIdentifier, Edge>,
+        border: Set<VertexId>,
+    ): Edge {
+        const list: Edge[] = Array.from(edges.values());
+        assert(list.length > 0);
+        let shortest: Nullable<Edge> = null;
+        for (let i: int = 0; i < list.length; i++) {
+            const edge: Edge = list[i];
+            if (
+                border.has(edge.vertices[0].id) &&
+                border.has(edge.vertices[1].id)
+            ) {
+                continue;
+            }
+            if (!shortest) {
+                shortest = edge;
+                continue;
+            }
+            if (edge.lengthQuadratic < shortest.lengthQuadratic) {
+                shortest = edge;
+            }
+        }
+        assert(shortest);
+        return shortest;
+    }
+
+    private findBorderVertices(
+        edges: Map<EdgeIdentifier, Edge>,
+    ): Set<VertexId> {
+        const list: Edge[] = Array.from(edges.values());
         const vertices: Set<VertexId> = new Set<VertexId>();
-        for (let i: int = 0; i < edges.length; i++) {
-            const edge: Edge = edges[i];
-            if (edges[i].isBorder()) {
+        for (let i: int = 0; i < list.length; i++) {
+            const edge: Edge = list[i];
+            if (list[i].isBorder()) {
                 vertices.add(edge.vertices[0].id);
                 vertices.add(edge.vertices[1].id);
             }
@@ -353,5 +400,16 @@ export class Geometry {
         const vertex: Vertex = new Vertex(count, position.toArray());
         this.vertices.push(vertex);
         return vertex;
+    }
+
+    private deleteBadEdges(
+        triangle: Triangle,
+        edge: Edge,
+        edges: Map<EdgeIdentifier, Edge>,
+    ): void {
+        const bad: EdgeIdentifier[] = triangle.unregisterEdges(edge.vertices);
+        for (let i: int = 0; i < bad.length; i++) {
+            edges.delete(bad[i]);
+        }
     }
 }

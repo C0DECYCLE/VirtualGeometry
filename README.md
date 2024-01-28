@@ -98,3 +98,11 @@
     triangles into map with key based on the ids of the vertices. write into each edge which triangles is it a part off, if edge is part of only 1 triangle its a border edge. (mark the vertices of border edges as border vertices.)? "lock" aka dont change position and deletion of border vertices.
 2.  simplification only inside of mesh meaning dont simplify a border edge. simplification  
     happens by edge collapse meaning merge the vertices of the edge together and update the vertices edges triangle. merge them togther at the average position aka middle? middle is the thing about average vs median vs error quadtratic. i think always this will result in 2 less triangles. if one of the vertices is a border vertex then not collapse to middle but position of border vertex. decide which edges to collapse by the distance between the edges? smallest edge distances first? repeat this process until there are <= 128 triangles left.
+
+    //delete all edges of the collapsed and changed triangles
+    // (from triangles and map) that included a bad vertices
+    //delete the two collapsed triangles from the triangles,
+    //update the vertex in all triangles, if you had one of the bad update to new
+    //create new edges of the updated triangles and insert into map and triangles
+
+    from nanite: group those with the most shared edges and split if not possible to simplify to 128 into multpiple clusters
