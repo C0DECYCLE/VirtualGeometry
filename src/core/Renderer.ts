@@ -85,7 +85,7 @@ export class Renderer {
         this.isPrepared = true;
         /////
         //this.handlers.draw.synchronize(this.handlers.geometry.count.clusters);
-        this.handlers.draw.synchronize(5);
+        this.handlers.draw.synchronize(8);
     }
     private async prepareGPU(): Promise<void> {
         this.canvas = this.createCanvas();

@@ -21,20 +21,9 @@ struct VertexShaderOut {
 @group(0) @binding(2) var<storage, read> vertecies: array<Vertex>;
 
 @vertex fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) clusterIndex: u32) -> VertexShaderOut {
-    /*
-    var offset: u32 = 1;
-    if (clusterIndex == 1) {
-        offset = 7;
-    }
-    */
-    let index: u32 = indices[(clusterIndex + 8) * 128 * 3 + vertexIndex];
+    let index: u32 = indices[(clusterIndex + 0) * 128 * 3 + vertexIndex];
     let vertex: Vertex = vertecies[index];
     var position: vec3f = vertex.position;
-    /*
-    if (clusterIndex == 1) {
-        position.y -= 1;
-    }
-    */
     var out: VertexShaderOut;
     out.position = uniforms.viewProjection * vec4f(position, 1);
     let uid: f32 = f32(vertexIndex) + 1;

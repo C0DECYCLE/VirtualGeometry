@@ -254,13 +254,41 @@ export class Geometry {
     }
 
     private buildHirarchy(count: Count): void {
+        //8 leaves
+        /*
+        const layer: Cluster[] = [];
+        for (let i: int = 0; i < Math.ceil(this.clusters.length / 2); i++) {
+            let origins: Cluster[] = [];
+            if (this.clusters[i * 2 + 0]) {
+                origins.push(this.clusters[i * 2 + 0]);
+            }
+            if (this.clusters[i * 2 + 1]) {
+                origins.push(this.clusters[i * 2 + 1]);
+            }
+            layer.push(this.mergeSimplify(count, origins));
+        }
+        log(this.clusters.length);
+        this.clusters.push(...layer);
+        log(layer.length);
+        */
+        /*
+        //4 parents
         this.clusters.push(
             this.mergeSimplify(count, [this.clusters[0], this.clusters[1]]),
-            this.mergeSimplify(count, [this.clusters[2]]),
-            this.mergeSimplify(count, [this.clusters[3]]),
+            this.mergeSimplify(count, [this.clusters[2], this.clusters[3]]),
             this.mergeSimplify(count, [this.clusters[4], this.clusters[5]]),
             this.mergeSimplify(count, [this.clusters[6], this.clusters[7]]),
         );
+        //2 parents
+        this.clusters.push(
+            this.mergeSimplify(count, [this.clusters[8], this.clusters[11]]),
+            this.mergeSimplify(count, [this.clusters[9], this.clusters[10]]),
+        );
+        //1 root
+        this.clusters.push(
+            this.mergeSimplify(count, [this.clusters[12], this.clusters[13]]),
+        );
+        */
     }
 
     private mergeSimplify(count: Count, clusters: Cluster[]): Cluster {
@@ -271,7 +299,7 @@ export class Geometry {
             try {
                 this.collapseSmallest(count, triangles, edges, border);
             } catch (e) {
-                warn("collapsing stopped at", triangles.length, "triangles");
+                warn("collapse stopped at", triangles.length);
                 break;
             }
         }
@@ -316,19 +344,22 @@ export class Geometry {
         const remove: int[] = [];
         for (let i: int = 0; i < triangles.length; i++) {
             const triangle: Triangle = triangles[i];
-            if (collapse.triangles.includes(triangle)) {
+            const aInTriangle = triangle.vertices.indexOf(collapse.vertices[0]);
+            const bInTriangle = triangle.vertices.indexOf(collapse.vertices[1]);
+            if (
+                collapse.triangles.includes(triangle) ||
+                (aInTriangle !== -1 && bInTriangle !== -1)
+            ) {
                 this.deleteBadEdges(triangle, collapse, edges);
                 remove.push(i);
                 continue;
             }
-            const aInTriangle = triangle.vertices.indexOf(collapse.vertices[0]);
             if (aInTriangle !== -1) {
                 this.deleteBadEdges(triangle, collapse, edges);
                 triangle.vertices[aInTriangle] = replacement;
                 this.registerEdges(edges, triangle);
                 continue;
             }
-            const bInTriangle = triangle.vertices.indexOf(collapse.vertices[1]);
             if (bInTriangle !== -1) {
                 this.deleteBadEdges(triangle, collapse, edges);
                 triangle.vertices[bInTriangle] = replacement;
@@ -351,8 +382,9 @@ export class Geometry {
         for (let i: int = 0; i < list.length; i++) {
             const edge: Edge = list[i];
             if (
-                border.has(edge.vertices[0].id) &&
-                border.has(edge.vertices[1].id)
+                edge.isBorder() ||
+                (border.has(edge.vertices[0].id) &&
+                    border.has(edge.vertices[1].id))
             ) {
                 continue;
             }

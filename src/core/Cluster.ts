@@ -17,6 +17,7 @@ export class Cluster {
         triangles: Triangle[],
         /*center: ClusterCenter,*/
     ) {
+        triangles = triangles.slice(0, 128);
         assert(triangles.length <= ClusterTrianglesLimit);
         count.registerCluster();
         this.triangles = triangles;
