@@ -82,6 +82,8 @@
 ### TODO
 
 -   Entity deletion
+-   improve clustering to reduce sprinkeld in triangles between stuff
+-   group based on proximity or if not good, shared triangles
 
 ### Clustering
 
@@ -106,3 +108,9 @@
     //create new edges of the updated triangles and insert into map and triangles
 
     from nanite: group those with the most shared edges and split if not possible to simplify to 128 into multpiple clusters
+
+    //problem with current is that locked edges (detailed) will accumilate if you just merge and simplify linearly
+
+    //solution: take level of clusters of entire mesh, group nearest clusters based on their bounds, then simplify each group to half the triangles and split again into clusters, as a result forming the next level of clusters (edges are only locked over 2 levels so cannot accomilate)
+
+    //difficulty later findingcut of the dag

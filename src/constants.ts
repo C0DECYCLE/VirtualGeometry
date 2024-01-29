@@ -16,9 +16,7 @@ export const WebGPURequirements: GPUFeatureName[] = [
 
 export const ClusterTrianglesLimit: int = 128;
 
-export const ClusterMergeLimit: int = 2;
-
-export const ClusterSimplifyTryLimit: int = 6;
+export const ClusterGroupingLimit: int = 4;
 
 export const VertexStride: int = Vec3Layout;
 

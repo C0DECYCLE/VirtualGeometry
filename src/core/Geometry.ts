@@ -4,7 +4,11 @@
  */
 
 import { OBJParseResult } from "../components/OBJParser.js";
-import { ClusterTrianglesLimit, VertexStride } from "../constants.js";
+import {
+    ClusterGroupingLimit,
+    ClusterTrianglesLimit,
+    VertexStride,
+} from "../constants.js";
 import {
     ClusterCenter,
     EdgeIdentifier,
@@ -39,9 +43,9 @@ export class Geometry {
         const pre: float = performance.now();
 
         this.vertices = this.extractVertices(count, parse);
-        const triangles = this.extractTrianglesEdges(count, parse);
-        this.clusters = this.clusterize(count, triangles);
-        this.buildHirarchy(count);
+        const triangles: Triangle[] = this.extractTrianglesEdges(count, parse);
+        const leaves: Cluster[] = this.clusterize(count, triangles);
+        this.clusters = this.buildHirarchy(count, leaves);
 
         log(
             this.key,
@@ -142,17 +146,14 @@ export class Geometry {
         const clusters: Cluster[] = [];
         const unused: Triangle[] = [...triangles];
         let suggestion: Undefinable<Triangle> = undefined;
-        while (unused.length !== 0) {
+        while (unused.length > 0) {
             const group: Triangle[] = [];
             const candidates: Triangle[] = [];
             let center: Undefinable<ClusterCenter> = undefined;
             const first: Triangle = this.popFirst(suggestion, unused);
             suggestion = undefined;
             center = this.register(first, group, candidates, center);
-            while (
-                group.length < ClusterTrianglesLimit &&
-                unused.length !== 0
-            ) {
+            while (group.length < ClusterTrianglesLimit && unused.length > 0) {
                 if (candidates.length === 0) {
                     const { index, nearest } = this.findNearest(center, unused);
                     swapRemove(unused, index);
@@ -176,7 +177,7 @@ export class Geometry {
                 suggestion = candidate;
                 break;
             }
-            clusters.push(new Cluster(count, group /*center*/));
+            clusters.push(new Cluster(count, group, center));
         }
         return clusters;
     }
@@ -253,60 +254,50 @@ export class Geometry {
         return { index: indexNearest!, nearest: nearest! };
     }
 
-    private buildHirarchy(count: Count): void {
-        //8 leaves
-        /*
-        const layer: Cluster[] = [];
-        for (let i: int = 0; i < Math.ceil(this.clusters.length / 2); i++) {
-            let origins: Cluster[] = [];
-            if (this.clusters[i * 2 + 0]) {
-                origins.push(this.clusters[i * 2 + 0]);
+    private buildHirarchy(count: Count, leaves: Cluster[]): Cluster[] {
+        const hirarchy: Cluster[] = [...leaves];
+
+        return hirarchy;
+
+        //log(leaves.length);
+        let previous: Cluster[] = leaves;
+        while (previous.length > 1) {
+            const groups: Cluster[][] = this.group(previous);
+            const next: Cluster[] = [];
+            for (let i: int = 0; i < groups.length; i++) {
+                next.push(...this.mergeSimplifyClusterize(count, groups[i]));
             }
-            if (this.clusters[i * 2 + 1]) {
-                origins.push(this.clusters[i * 2 + 1]);
-            }
-            layer.push(this.mergeSimplify(count, origins));
+            hirarchy.push(...next);
+            previous = next;
+            //log(next.length);
         }
-        log(this.clusters.length);
-        this.clusters.push(...layer);
-        log(layer.length);
-        */
-        /*
-        //4 parents
-        this.clusters.push(
-            this.mergeSimplify(count, [this.clusters[0], this.clusters[1]]),
-            this.mergeSimplify(count, [this.clusters[2], this.clusters[3]]),
-            this.mergeSimplify(count, [this.clusters[4], this.clusters[5]]),
-            this.mergeSimplify(count, [this.clusters[6], this.clusters[7]]),
-        );
-        //2 parents
-        this.clusters.push(
-            this.mergeSimplify(count, [this.clusters[8], this.clusters[11]]),
-            this.mergeSimplify(count, [this.clusters[9], this.clusters[10]]),
-        );
-        //1 root
-        this.clusters.push(
-            this.mergeSimplify(count, [this.clusters[12], this.clusters[13]]),
-        );
-        */
+        return hirarchy;
     }
 
-    private mergeSimplify(count: Count, clusters: Cluster[]): Cluster {
+    private group(clusters: Cluster[]): Cluster[][] {
+        const groups: Cluster[][] = [];
+        const unused: Cluster[] = [...clusters];
+        while (unused.length > 0) {
+            const group: Cluster[] = [];
+            while (group.length < ClusterGroupingLimit && unused.length > 0) {
+                group.push(unused.shift()!);
+            }
+            groups.push(group);
+        }
+        return groups;
+    }
+
+    private mergeSimplifyClusterize(
+        count: Count,
+        clusters: Cluster[],
+    ): Cluster[] {
         assert(clusters.length > 0);
-        const { triangles, edges } = this.deepMerge(count, clusters);
-        const border: Set<VertexId> = this.findBorderVertices(edges);
-        while (triangles.length > 128) {
-            try {
-                this.collapseSmallest(count, triangles, edges, border);
-            } catch (e) {
-                warn("collapse stopped at", triangles.length);
-                break;
-            }
-        }
-        return new Cluster(count, triangles);
+        const { triangles, edges } = this.merge(count, clusters);
+        this.simplify(count, triangles, edges);
+        return this.clusterize(count, triangles);
     }
 
-    private deepMerge(
+    private merge(
         count: Count,
         clusters: Cluster[],
     ): { triangles: Triangle[]; edges: Map<EdgeIdentifier, Edge> } {
@@ -327,6 +318,22 @@ export class Geometry {
             }
         }
         return { triangles, edges };
+    }
+
+    private simplify(
+        count: Count,
+        triangles: Triangle[],
+        edges: Map<EdgeIdentifier, Edge>,
+    ): void {
+        const border: Set<VertexId> = this.findBorderVertices(edges);
+        const reduce: int = Math.ceil(triangles.length / 2);
+        while (triangles.length > reduce) {
+            try {
+                this.collapseSmallest(count, triangles, edges, border);
+            } catch (e) {
+                throw new Error("collapse stopped at " + triangles.length);
+            }
+        }
     }
 
     private collapseSmallest(

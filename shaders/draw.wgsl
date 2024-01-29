@@ -24,9 +24,26 @@ struct VertexShaderOut {
     let index: u32 = indices[(clusterIndex + 0) * 128 * 3 + vertexIndex];
     let vertex: Vertex = vertecies[index];
     var position: vec3f = vertex.position;
+
+    if (clusterIndex >= 136) {
+        position.y -= 2;
+        if (clusterIndex >= 136 + 68) {
+            position.y -= 2;
+            if (clusterIndex >= 136 + 68 + 32) {
+                position.y -= 2;
+                if (clusterIndex >= 136 + 68 + 32 + 4) {
+                    position.y -= 2;
+                    if (clusterIndex >= 136 + 68 + 32 + 4 + 0) {
+                        position.y -= 2;
+                    }
+                }
+            }
+        }
+    }
+
     var out: VertexShaderOut;
     out.position = uniforms.viewProjection * vec4f(position, 1);
-    let uid: f32 = f32(vertexIndex) + 1;
+    let uid: f32 = f32(clusterIndex) + 1;
     out.color = fract(vec3f(uid * 0.1443, uid * 0.6841, uid * 0.7323));
     return out;
 }

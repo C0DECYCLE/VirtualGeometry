@@ -4,27 +4,27 @@
  */
 
 import { ClusterTrianglesLimit } from "../constants.js";
+import { ClusterBounds, ClusterCenter } from "../core.type.js";
 import { assert } from "../utilities/utils.js";
+import { float, int } from "../utils.type.js";
 import { Count } from "./Count.js";
 import { Triangle } from "./Triangle.js";
 
 export class Cluster {
     public readonly triangles: Triangle[];
-    //public readonly bounds: ClusterBounds;
+    public readonly bounds: ClusterBounds;
 
     public constructor(
         count: Count,
         triangles: Triangle[],
-        /*center: ClusterCenter,*/
+        center: ClusterCenter,
     ) {
-        triangles = triangles.slice(0, 128);
         assert(triangles.length <= ClusterTrianglesLimit);
         count.registerCluster();
         this.triangles = triangles;
-        //this.bounds = this.computeBounds(center);
+        this.bounds = this.computeBounds(center);
     }
 
-    /*
     private computeBounds(center: ClusterCenter): ClusterBounds {
         let radiusQuadratic: float = 0;
         for (let i: int = 0; i < this.triangles.length; i++) {
@@ -50,5 +50,4 @@ export class Cluster {
             radius: Math.sqrt(radiusQuadratic),
         } as ClusterBounds;
     }
-    */
 }
