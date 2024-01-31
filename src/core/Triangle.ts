@@ -4,6 +4,7 @@
  */
 
 import { EdgeIdentifier } from "../core.type.js";
+import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
 import { int } from "../utils.type.js";
 import { Count } from "./Count.js";
@@ -64,5 +65,13 @@ export class Triangle {
             }
         }
         return false;
+    }
+
+    public getCenter(): Vec3 {
+        return this.vertices[0].position
+            .clone()
+            .add(this.vertices[1].position)
+            .add(this.vertices[2].position)
+            .scale(1 / 3);
     }
 }
