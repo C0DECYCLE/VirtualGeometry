@@ -5,6 +5,7 @@
 
 import { EdgeIdentifier } from "../core.type.js";
 import { assert } from "../utilities/utils.js";
+import { int } from "../utils.type.js";
 import { Count } from "./Count.js";
 import { Edge } from "./Edge.js";
 import { Vertex } from "./Vertex.js";
@@ -52,5 +53,16 @@ export class Triangle {
 
     public hasEdge(identifier: EdgeIdentifier): boolean {
         return this.edges.has(identifier);
+    }
+
+    public isBorder(): boolean {
+        assert(this.edges.size === 3);
+        const edges: Edge[] = Array.from(this.edges.values());
+        for (let i: int = 0; i < edges.length; i++) {
+            if (edges[i].isBorder()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

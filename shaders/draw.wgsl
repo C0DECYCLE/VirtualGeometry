@@ -25,21 +25,22 @@ struct VertexShaderOut {
     let vertex: Vertex = vertecies[index];
     var position: vec3f = vertex.position;
 
-    if (clusterIndex >= 136) {
+    
+    if (clusterIndex >= 543) {
         position.y -= 2;
-        if (clusterIndex >= 136 + 68) {
+        if (clusterIndex >= 543 + 272) {
             position.y -= 2;
-            if (clusterIndex >= 136 + 68 + 32) {
+            if (clusterIndex >= 543 + 272 + 136) {
                 position.y -= 2;
-                if (clusterIndex >= 136 + 68 + 32 + 4) {
+                /*
+                if (clusterIndex >= 136 + 68 + 34 + 10) {
                     position.y -= 2;
-                    if (clusterIndex >= 136 + 68 + 32 + 4 + 0) {
-                        position.y -= 2;
-                    }
                 }
+                */
             }
         }
     }
+    
 
     var out: VertexShaderOut;
     out.position = uniforms.viewProjection * vec4f(position, 1);

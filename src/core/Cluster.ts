@@ -47,7 +47,7 @@ export class Cluster {
         }
         return {
             center: center.center,
-            radius: Math.sqrt(radiusQuadratic),
+            radiusQuadratic: radiusQuadratic,
         } as ClusterBounds;
     }
 }

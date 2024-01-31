@@ -25,7 +25,7 @@ export type ClusterCenter = {
 
 export type ClusterBounds = {
     center: Vec3;
-    radius: float;
+    radiusQuadratic: float;
 };
 
 export type TriangleId = int;

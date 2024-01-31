@@ -83,7 +83,7 @@
 
 -   Entity deletion
 -   improve clustering to reduce sprinkeld in triangles between stuff
--   group based on proximity or if not good, shared triangles
+-   improve group based on shared triangles
 
 ### Clustering
 
