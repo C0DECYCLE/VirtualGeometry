@@ -57,13 +57,14 @@ export class Geometry {
     private buildHirarchy(count: Count, leaves: Cluster[]): Cluster[] {
         const merge = GeometryHelper.MergeClusters;
         const simplify = GeometrySimplify.Simplify;
+        const clusterize = GeometryClustering.ClusterizeWithoutAdjacency;
         const hirarchy: Cluster[] = [...leaves];
 
-        /*
         log(leaves.length); //
 
         let previous: Cluster[] = leaves;
-        while (previous.length > 1) {
+        let exit: boolean = false;
+        while (previous.length > 1 && !exit) {
             const groups: Cluster[][] = GeometryGrouping.Group(previous);
             const next: Cluster[] = [];
             for (let i: int = 0; i < groups.length; i++) {
@@ -71,13 +72,11 @@ export class Geometry {
                 try {
                     const { triangles, edges } = merge(count, groups[i]);
                     simplify(count, this.vertices, triangles, edges);
-                    // prettier-ignore
-                    next.push(...GeometryClustering.Clusterize(count, triangles));
+                    next.push(...clusterize(count, triangles));
                     //
                 } catch (e) {
-                    hirarchy.push(...next); //
-                    log(e, next.length); //
-                    return hirarchy; //
+                    log(e, i, next.length); //
+                    exit = true;
                 }
             }
             hirarchy.push(...next);
@@ -85,7 +84,7 @@ export class Geometry {
 
             log(next.length); //
         }
-        */
+
         return hirarchy;
     }
 }

@@ -24,6 +24,7 @@
 -   https://github.com/OmarShehata/webgpu-compute-rasterizer/blob/main/how-to-build-a-compute-rasterizer.md
 -   https://graphics.stanford.edu/courses/cs468-10-fall/LectureSlides/08_Simplification.pdf
 -   https://www.ri.cmu.edu/pub_files/pub2/garland_michael_1997_1/garland_michael_1997_1.pdf
+-   https://blog.traverseresearch.nl/creating-a-directed-acyclic-graph-from-a-mesh-1329e57286e5
 
 ## Idea
 

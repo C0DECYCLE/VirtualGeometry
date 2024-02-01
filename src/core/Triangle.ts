@@ -30,9 +30,12 @@ export class Triangle {
 
     public getAdjacent(): Set<Triangle> {
         assert(this.edges.size === 3);
-        const triangles: Triangle[] = [];
-        this.edges.forEach((edge: Edge) => triangles.push(...edge.triangles));
-        const adjacent: Set<Triangle> = new Set<Triangle>(triangles);
+        const adjacent: Set<Triangle> = new Set<Triangle>();
+        this.edges.forEach((edge: Edge) =>
+            edge.triangles.forEach((triangle: Triangle) =>
+                adjacent.add(triangle),
+            ),
+        );
         adjacent.delete(this);
         return adjacent;
     }
@@ -54,6 +57,10 @@ export class Triangle {
 
     public hasEdge(identifier: EdgeIdentifier): boolean {
         return this.edges.has(identifier);
+    }
+
+    public clearEdges(): void {
+        this.edges.clear();
     }
 
     public isBorder(): boolean {

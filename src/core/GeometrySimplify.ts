@@ -36,15 +36,13 @@ export class GeometrySimplify {
     private static FindBorderVertices(
         edges: Map<EdgeIdentifier, Edge>,
     ): Set<VertexId> {
-        const list: Edge[] = Array.from(edges.values());
         const vertices: Set<VertexId> = new Set<VertexId>();
-        for (let i: int = 0; i < list.length; i++) {
-            const edge: Edge = list[i];
-            if (list[i].isBorder()) {
+        edges.forEach((edge: Edge) => {
+            if (edge.isBorder()) {
                 vertices.add(edge.vertices[0].id);
                 vertices.add(edge.vertices[1].id);
             }
-        }
+        });
         return vertices;
     }
 
