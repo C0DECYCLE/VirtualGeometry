@@ -1,17 +1,15 @@
 /**
  * Copyright (C) - All Rights Reserved
- * Written by Noah Mattia Bussinger, January 2024
+ * Written by Noah Mattia Bussinger, February 2024
  */
 
 import { OBJParseResult } from "../components/OBJParser.js";
-import { ClusterGroupingLimit } from "../constants.js";
-import { EdgeIdentifier, GeometryId, GeometryKey } from "../core.type.js";
+import { GeometryId, GeometryKey } from "../core.type.js";
 import { log, warn } from "../utilities/logger.js";
-import { assert, dotit, swapRemove } from "../utilities/utils.js";
-import { Nullable, Undefinable, float, int } from "../utils.type.js";
+import { assert, dotit } from "../utilities/utils.js";
+import { float, int } from "../utils.type.js";
 import { Cluster } from "./Cluster.js";
 import { Count } from "./Count.js";
-import { Edge } from "./Edge.js";
 import { GeometryClustering } from "./GeometryClustering.js";
 import { GeometryGrouping } from "./GeometryGrouping.js";
 import { GeometryHelper } from "./GeometryHelper.js";
@@ -62,6 +60,10 @@ export class Geometry {
 
         log(leaves.length); //
 
+        for (let i: int = 0; i < leaves.length; i++) {
+            leaves[i].error = Math.random() * 0.2;
+        }
+
         let previous: Cluster[] = leaves;
         let exit: boolean = false;
         while (previous.length > 1 && !exit) {
@@ -70,9 +72,24 @@ export class Geometry {
             for (let i: int = 0; i < groups.length; i++) {
                 //
                 try {
-                    const { triangles, edges } = merge(count, groups[i]);
+                    const children: Cluster[] = groups[i];
+                    let maxChildrenError: float = 0;
+                    for (let j: int = 0; j < children.length; j++) {
+                        maxChildrenError = Math.max(
+                            maxChildrenError,
+                            children[j].error,
+                        );
+                    }
+                    const { triangles, edges } = merge(count, children);
                     simplify(count, this.vertices, triangles, edges);
-                    next.push(...clusterize(count, triangles));
+                    const parents: Cluster[] = clusterize(count, triangles);
+                    const parentError: float =
+                        maxChildrenError + Math.random() * 0.2;
+                    for (let j: int = 0; j < parents.length; j++) {
+                        parents[j].error = parentError;
+                    }
+                    this.setChildrenParents(children, parents);
+                    next.push(...parents);
                     //
                 } catch (e) {
                     log(e, i, next.length); //
@@ -86,5 +103,18 @@ export class Geometry {
         }
 
         return hirarchy;
+    }
+
+    private setChildrenParents(children: Cluster[], parents: Cluster[]): void {
+        for (let i: int = 0; i < children.length; i++) {
+            const child: Cluster = children[i];
+            assert(child.parents.length === 0);
+            child.parents.push(...parents);
+        }
+        for (let i: int = 0; i < parents.length; i++) {
+            const parent: Cluster = parents[i];
+            assert(parent.children.length === 0);
+            parent.children.push(...children);
+        }
     }
 }

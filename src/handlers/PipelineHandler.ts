@@ -1,6 +1,6 @@
 /**
  * Copyright (C) - All Rights Reserved
- * Written by Noah Mattia Bussinger, January 2024
+ * Written by Noah Mattia Bussinger, February 2024
  */
 
 import { TextureFormats } from "../constants.js";
@@ -11,17 +11,36 @@ import { Renderer } from "../core/Renderer.js";
 export class PipelineHandler {
     private readonly renderer: Renderer;
 
+    public evaluation: Nullable<GPUComputePipeline>;
     public draw: Nullable<GPURenderPipeline>;
 
     public constructor(renderer: Renderer) {
         this.renderer = renderer;
+        this.evaluation = null;
         this.draw = null;
     }
 
     public async prepare(): Promise<void> {
         const device: Nullable<GPUDevice> = this.renderer.device;
         assert(device);
+        this.evaluation = await this.createEvaluationPipeline(device);
         this.draw = await this.createDrawPipeline(device);
+    }
+
+    private async createEvaluationPipeline(
+        device: GPUDevice,
+    ): Promise<GPUComputePipeline> {
+        const shader: Nullable<GPUShaderModule> =
+            this.renderer.handlers.shader.evaluationModule;
+        assert(shader);
+        return await device.createComputePipelineAsync({
+            label: "evaluation-pipeline",
+            layout: "auto",
+            compute: {
+                module: shader,
+                entryPoint: "cs",
+            } as GPUProgrammableStage,
+        } as GPUComputePipelineDescriptor);
     }
 
     private async createDrawPipeline(

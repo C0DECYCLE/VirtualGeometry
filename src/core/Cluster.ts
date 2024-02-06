@@ -12,35 +12,43 @@ import { Count } from "./Count.js";
 import { Edge } from "./Edge.js";
 import { GeometryHelper } from "./GeometryHelper.js";
 import { Triangle } from "./Triangle.js";
+import { Vertex } from "./Vertex.js";
 
 export class Cluster {
     public readonly triangles: Triangle[];
     public readonly bounds: ClusterBounds;
     public readonly border: Set<VertexId>;
+    public readonly parents: Cluster[];
+    public readonly children: Cluster[];
+    public error: float;
 
-    public constructor(count: Count, triangles: Triangle[], center: Vec3) {
+    public constructor(count: Count, triangles: Triangle[]) {
         assert(triangles.length <= ClusterTrianglesLimit);
         count.registerCluster();
         this.triangles = triangles;
-        this.bounds = this.computeBounds(center);
+        this.bounds = this.computeBounds();
         this.border = this.computeBorder();
+        this.parents = [];
+        this.children = [];
+        this.error = 0;
     }
 
-    private computeBounds(center: Vec3): ClusterBounds {
-        let radiusQuadratic: float = 0;
+    private computeBounds(): ClusterBounds {
+        const min: Vec3 = new Vec3();
+        const max: Vec3 = new Vec3();
         for (let i: int = 0; i < this.triangles.length; i++) {
-            const tri: Triangle = this.triangles[i];
-            radiusQuadratic = Math.max(
-                radiusQuadratic,
-                tri.vertices[0].position.clone().sub(center).lengthQuadratic(),
-                tri.vertices[1].position.clone().sub(center).lengthQuadratic(),
-                tri.vertices[2].position.clone().sub(center).lengthQuadratic(),
-            );
+            const triangle: Triangle = this.triangles[i];
+            for (let j: int = 0; j < triangle.vertices.length; j++) {
+                const vertex: Vertex = triangle.vertices[j];
+                min.x = Math.min(min.x, vertex.position.x);
+                min.y = Math.min(min.y, vertex.position.y);
+                min.z = Math.min(min.z, vertex.position.z);
+                max.x = Math.max(max.x, vertex.position.x);
+                max.y = Math.max(max.y, vertex.position.y);
+                max.z = Math.max(max.z, vertex.position.z);
+            }
         }
-        return {
-            center: center,
-            radiusQuadratic: radiusQuadratic,
-        } as ClusterBounds;
+        return { min, max } as ClusterBounds;
     }
 
     private computeBorder(): Set<VertexId> {
@@ -61,5 +69,9 @@ export class Cluster {
             }
         });
         return vertices;
+    }
+
+    public getCenter(): Vec3 {
+        return this.bounds.min.clone().add(this.bounds.max).scale(0.5);
     }
 }

@@ -82,9 +82,12 @@ export class Renderer {
         this.analytics.prepare(this.device);
         await this.prepareHandlers();
         this.prepareCameraControl();
+        assert(this.canvas);
+        this.handlers.uniform.resolution(this.canvas.width, this.canvas.height);
         this.isPrepared = true;
         /////
-        this.handlers.draw.synchronize(this.handlers.geometry.count.clusters);
+        this.handlers.uniform.viewMode(1);
+        //this.handlers.draw.synchronize(this.handlers.geometry.count.clusters);
     }
     private async prepareGPU(): Promise<void> {
         this.canvas = this.createCanvas();
@@ -148,8 +151,9 @@ export class Renderer {
         this.handlers.texture.prepare(this.device, this.canvas);
         this.handlers.attachment.prepare();
         await this.handlers.pipeline.prepare();
+        this.handlers.draw.prepare();
         this.handlers.bindGroup.prepare();
-        await this.handlers.draw.prepare();
+        this.handlers.draw.encode();
     }
 
     private prepareCameraControl(): void {
@@ -184,7 +188,7 @@ export class Renderer {
     private synchronize(): void {
         assert(this.control && this.camera && this.device);
         this.control.update();
-        this.camera.update().store(this.handlers.uniform.data, 0);
+        this.handlers.uniform.viewProjection(this.camera.update());
         this.handlers.uniform.synchronize(this.device);
         this.handlers.entity.synchronize();
     }
@@ -194,6 +198,24 @@ export class Renderer {
         const encoder: GPUCommandEncoder = this.device.createCommandEncoder({
             label: "command-encoder",
         } as GPUObjectDescriptorBase);
+
+        //
+        this.handlers.draw.synchronize(0);
+        //
+        const evaluationPass: GPUComputePassEncoder = encoder.beginComputePass({
+            label: "evaluation-pass",
+            timestampWrites: this.analytics.getEvaluationPassTimestamps(),
+        } as GPUComputePassDescriptor);
+        evaluationPass.setPipeline(this.handlers.pipeline.evaluation!);
+        evaluationPass.setBindGroup(0, this.handlers.bindGroup.evaluation);
+        evaluationPass.dispatchWorkgroups(
+            1 /*this.handlers.geometry.count.clusters*/,
+            1,
+            1,
+        );
+        evaluationPass.end();
+        //
+
         this.handlers.draw.render(encoder);
         this.analytics.resolve(encoder);
         this.device.queue.submit([encoder.finish()]);

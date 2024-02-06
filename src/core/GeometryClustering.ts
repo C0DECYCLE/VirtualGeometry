@@ -1,6 +1,6 @@
 /**
  * Copyright (C) - All Rights Reserved
- * Written by Noah Mattia Bussinger, January 2024
+ * Written by Noah Mattia Bussinger, February 2024
  */
 
 import { ClusterTrianglesLimit } from "../constants.js";
@@ -48,14 +48,14 @@ export class GeometryClustering {
                     candidates.push(...nearest.getAdjacent());
                 }
             }
-            clusters.push(new Cluster(count, use, center));
+            clusters.push(new Cluster(count, use));
             //suggest nearest candidate to the overall start point for next cluster
             const possible: Triangle[] = candidates.filter(
                 (candidate: Triangle) => unused.includes(candidate),
             );
             if (possible.length > 0) {
                 suggestion = self.FindNearest(
-                    clusters[0].bounds.center,
+                    clusters[0].getCenter(),
                     possible,
                 ).nearest;
             }
@@ -129,7 +129,7 @@ export class GeometryClustering {
                 tri.vertices[0].position.clone().sub(target).lengthQuadratic(),
                 tri.vertices[1].position.clone().sub(target).lengthQuadratic(),
                 tri.vertices[2].position.clone().sub(target).lengthQuadratic(),
-            ); //tri.getCenter().sub(target).lengthQuadratic();
+            ); // tri.getCenter().sub(target).lengthQuadratic();
             if (dist < near) {
                 index = i;
                 nearest = tri;
@@ -164,11 +164,11 @@ export class GeometryClustering {
                 swapRemove(unused, index);
                 use.push(nearest);
             }
-            clusters.push(new Cluster(count, use, center));
+            clusters.push(new Cluster(count, use));
             //suggest nearest unused to the overall start point for next cluster
             if (unused.length > 0) {
                 suggestion = self.FindNearest(
-                    clusters[0].bounds.center,
+                    clusters[0].getCenter(),
                     unused,
                 ).nearest;
             }

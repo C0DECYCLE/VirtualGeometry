@@ -81,4 +81,14 @@ export class Triangle {
             .add(this.vertices[2].position)
             .scale(1 / 3);
     }
+
+    public getNormal(): Vec3 {
+        const a: Vec3 = this.vertices[1].position
+            .clone()
+            .sub(this.vertices[0].position);
+        const b: Vec3 = this.vertices[2].position
+            .clone()
+            .sub(this.vertices[0].position);
+        return a.cross(b).normalize();
+    }
 }

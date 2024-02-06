@@ -5,11 +5,11 @@
 
 import { Entity } from "./core/Entity.js";
 import { Renderer } from "./core/Renderer.js";
-import { log } from "./utilities/logger.js";
 
 const renderer: Renderer = new Renderer();
-await renderer.import("test", "./resources/bunny.obj");
+await renderer.import("test", "./resources/suhigh.obj");
 await renderer.prepare();
 renderer.add(new Entity("test"));
-log(renderer);
 renderer.run();
+
+(window as any).renderer = renderer;

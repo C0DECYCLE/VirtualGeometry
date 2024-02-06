@@ -14,18 +14,21 @@ export class Analytics {
     private readonly deltas: {
         frame: RollingAverage;
         cpu: RollingAverage;
-        gpu: RollingAverage;
+        gpuEvaluation: RollingAverage;
+        gpuRender: RollingAverage;
     };
     private readonly stats: Stats;
     private timings: Nullable<{
-        gpu: GPUTiming;
+        gpuEvaluation: GPUTiming;
+        gpuRender: GPUTiming;
     }>;
 
     public constructor() {
         this.deltas = {
             frame: new RollingAverage(AnalyticSamples),
             cpu: new RollingAverage(AnalyticSamples),
-            gpu: new RollingAverage(AnalyticSamples),
+            gpuEvaluation: new RollingAverage(AnalyticSamples),
+            gpuRender: new RollingAverage(AnalyticSamples),
         };
         this.stats = this.createStats();
         this.timings = null;
@@ -42,14 +45,20 @@ export class Analytics {
 
     public prepare(device: GPUDevice): void {
         this.timings = {
-            gpu: new GPUTiming(device),
+            gpuEvaluation: new GPUTiming(device),
+            gpuRender: new GPUTiming(device),
         };
         this.stats.show();
     }
 
+    public getEvaluationPassTimestamps(): GPURenderPassTimestampWrites {
+        assert(this.timings);
+        return this.timings.gpuEvaluation.timestampWrites;
+    }
+
     public getRenderPassTimestamps(): GPURenderPassTimestampWrites {
         assert(this.timings);
-        return this.timings.gpu.timestampWrites;
+        return this.timings.gpuRender.timestampWrites;
     }
 
     public preFrame(): void {
@@ -58,7 +67,8 @@ export class Analytics {
 
     public resolve(encoder: GPUCommandEncoder): void {
         assert(this.timings);
-        this.timings.gpu.resolve(encoder);
+        this.timings.gpuEvaluation.resolve(encoder);
+        this.timings.gpuRender.resolve(encoder);
     }
 
     public postFrame(now: float): void {
@@ -67,20 +77,32 @@ export class Analytics {
         this.deltas.cpu.sample(this.stats.get("cpu delta")!);
         this.stats.set("frame delta", now - this.stats.get("frame delta")!);
         this.deltas.frame.sample(this.stats.get("frame delta")!);
-        this.timings.gpu.readback((ms: float) => {
-            this.stats.set("gpu delta", ms);
-            this.deltas.gpu.sample(ms);
+        this.timings.gpuEvaluation.readback((ms: float) => {
+            this.stats.set("gpu evaluation delta", ms);
+            this.deltas.gpuEvaluation.sample(ms);
         });
+        this.timings.gpuRender.readback((ms: float) => {
+            this.stats.set("gpu render delta", ms);
+            this.deltas.gpuRender.sample(ms);
+        });
+        const gpuSum: float =
+            this.deltas.gpuEvaluation.get() + this.deltas.gpuRender.get();
         // prettier-ignore
         this.stats.update(`
-            <b>frame rate: ${(1_000 / this.deltas.frame.get()).toFixed(0)} fps</b><br>
+            <b>frame rate: ${(1_000 / this.deltas.frame.get()).toFixed(
+                0,
+            )} fps</b><br>
             frame delta: ${this.deltas.frame.get().toFixed(2)} ms<br>
             <br>
-            <b>cpu rate: ${(1_000 / this.deltas.cpu.get()).toFixed(0)} fps</b><br>
+            <b>cpu rate: ${(1_000 / this.deltas.cpu.get()).toFixed(
+                0,
+            )} fps</b><br>
             cpu delta: ${this.deltas.cpu.get().toFixed(2)} ms<br>
             <br>
-            <b>gpu rate: ${(1_000 / this.deltas.cpu.get()).toFixed(0)} fps</b><br>
-            gpu delta: ${this.deltas.cpu.get().toFixed(2)} ms<br>
+            <b>gpu rate: ${(1_000 / gpuSum).toFixed(0)} fps</b><br>
+            gpu delta: ${gpuSum.toFixed(2)} ms<br>
+            - gpu evaluation delta: ${this.deltas.gpuEvaluation.get().toFixed(2)} ms<br>
+            - gpu render delta: ${this.deltas.gpuRender.get().toFixed(2)} ms<br>
         `);
         this.stats.set("frame delta", now);
     }

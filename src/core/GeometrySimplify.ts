@@ -1,6 +1,6 @@
 /**
  * Copyright (C) - All Rights Reserved
- * Written by Noah Mattia Bussinger, January 2024
+ * Written by Noah Mattia Bussinger, February 2024
  */
 
 import { EdgeIdentifier, VertexId } from "../core.type.js";
@@ -28,7 +28,9 @@ export class GeometrySimplify {
                 // prettier-ignore
                 self.CollapseSmallest(count, vertcies, triangles, edges, border);
             } catch (e) {
-                throw new Error("collapse stopped at " + triangles.length);
+                throw new Error(
+                    "collapse stopped at " + triangles.length + "/" + reduce,
+                );
             }
         }
     }
@@ -129,10 +131,18 @@ export class GeometrySimplify {
         } else if (border.has(edge.vertices[1].id)) {
             return edge.vertices[1];
         }
+        /*
+        const a: Vec3 = edge.triangles[0].getNormal();
+        const b: Vec3 = edge.triangles[1].getNormal();
+        const dot: float = a.dot(b);
+        const length: float = Math.sqrt(edge.lengthQuadratic);
+        const normal: Vec3 = a.add(b).scale(0.5);
+        */
         const position: Vec3 = new Vec3()
             .copy(edge.vertices[0].position)
             .add(edge.vertices[1].position)
             .scale(0.5);
+        //.add(normal.scale(dot * length * 0.25));
         return new Vertex(count, position.toArray());
     }
 
