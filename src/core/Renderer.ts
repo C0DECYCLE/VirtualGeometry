@@ -210,7 +210,7 @@ export class Renderer {
         evaluationPass.setPipeline(this.handlers.pipeline.evaluation!);
         evaluationPass.setBindGroup(0, this.handlers.bindGroup.evaluation);
         evaluationPass.dispatchWorkgroups(
-            this.handlers.geometry.count.clusters,
+            this.handlers.geometry.count.clusters / 256,
             1,
             1,
         );

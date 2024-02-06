@@ -18,6 +18,8 @@ export const ClusterTrianglesLimit: int = 128;
 
 export const ClusterGroupingLimit: int = 4;
 
+export const AllowMicroCracks: boolean = true;
+
 export const ClusterLayout: int = 3 + 1 + 3 + 2 + 4 + 1 + 2;
 
 export const TasksLimit: int = 100;

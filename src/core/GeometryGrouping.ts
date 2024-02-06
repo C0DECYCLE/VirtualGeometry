@@ -37,14 +37,12 @@ export class GeometryGrouping {
         suggestion: Undefinable<Cluster>,
         unused: Cluster[],
     ): Cluster {
-        //either suggestion
         if (suggestion) {
             const suggestionInUnusedAt: int = unused.indexOf(suggestion);
             assert(suggestionInUnusedAt !== -1);
             swapRemove(unused, suggestionInUnusedAt);
             return suggestion;
         }
-        //or last
         return unused.pop()!;
     }
 

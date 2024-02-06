@@ -18,19 +18,15 @@ export class GeometryClustering {
         const unused: Triangle[] = [...triangles];
         let suggestion: Undefinable<Triangle> = undefined;
         const center: Vec3 = self.ComputeCenter(triangles);
-        //as long as triangles left start a new cluster
         while (unused.length > 0) {
             const use: Triangle[] = [];
             const candidates: Triangle[] = [];
-            //get first maybe by suggestion
             const first: Triangle = self.PopFirst(suggestion, unused, center);
             suggestion = undefined;
             use.push(first);
             candidates.push(...first.getAdjacent());
-            //as long as cluster is not full and triangles left
             while (use.length < ClusterTrianglesLimit && unused.length > 0) {
                 const target: Vec3 = first.getCenter();
-                // if there are no candidates use nearest other
                 if (candidates.length === 0) {
                     const { index, nearest } = self.FindNearest(target, unused);
                     swapRemove(unused, index);
@@ -38,7 +34,6 @@ export class GeometryClustering {
                     candidates.push(...nearest.getAdjacent());
                     continue;
                 }
-                //use nearest candidate that is unused
                 const { index, nearest } = self.FindNearest(target, candidates);
                 swapRemove(candidates, index);
                 const nearestInUnusedAt: int = unused.indexOf(nearest);
@@ -49,7 +44,6 @@ export class GeometryClustering {
                 }
             }
             clusters.push(new Cluster(count, use));
-            //suggest nearest candidate to the overall start point for next cluster
             const possible: Triangle[] = candidates.filter(
                 (candidate: Triangle) => unused.includes(candidate),
             );
@@ -75,20 +69,17 @@ export class GeometryClustering {
         return center;
     }
 
-    //give starting triangle
     private static PopFirst(
         suggestion: Undefinable<Triangle>,
         unused: Triangle[],
         center: Vec3,
     ): Triangle {
-        //either suggestion
         if (suggestion) {
             const suggestionInUnusedAt: int = unused.indexOf(suggestion);
             assert(suggestionInUnusedAt !== -1);
             swapRemove(unused, suggestionInUnusedAt);
             return suggestion;
         }
-        //or a border one
         let index: Undefinable<int> = undefined;
         let farest: Nullable<Triangle> = null;
         let distance: float = -1;
@@ -111,11 +102,9 @@ export class GeometryClustering {
             swapRemove(unused, index);
             return farest;
         }
-        //or last
         return unused.pop()!;
     }
 
-    //find nearest triangle to a point out of a list of triangles
     private static FindNearest(
         target: Vec3,
         candidates: Triangle[],
@@ -129,7 +118,7 @@ export class GeometryClustering {
                 tri.vertices[0].position.clone().sub(target).lengthQuadratic(),
                 tri.vertices[1].position.clone().sub(target).lengthQuadratic(),
                 tri.vertices[2].position.clone().sub(target).lengthQuadratic(),
-            ); // tri.getCenter().sub(target).lengthQuadratic();
+            );
             if (dist < near) {
                 index = i;
                 nearest = tri;
@@ -149,23 +138,18 @@ export class GeometryClustering {
         const unused: Triangle[] = [...triangles];
         let suggestion: Undefinable<Triangle> = undefined;
         const center: Vec3 = self.ComputeCenter(triangles);
-        //as long as triangles left start a new cluster
         while (unused.length > 0) {
             const use: Triangle[] = [];
-            //get first maybe by suggestion
             const first: Triangle = self.PopFirst(suggestion, unused, center);
             suggestion = undefined;
             use.push(first);
-            //as long as cluster is not full and triangles left
             while (use.length < ClusterTrianglesLimit && unused.length > 0) {
-                // use nearest of all unused
                 const target: Vec3 = first.getCenter();
                 const { index, nearest } = self.FindNearest(target, unused);
                 swapRemove(unused, index);
                 use.push(nearest);
             }
             clusters.push(new Cluster(count, use));
-            //suggest nearest unused to the overall start point for next cluster
             if (unused.length > 0) {
                 suggestion = self.FindNearest(
                     clusters[0].getCenter(),

@@ -32,9 +32,8 @@ struct Indirect {
 @group(0) @binding(2) var<storage, read_write> tasks: array<ClusterId>;
 @group(0) @binding(3) var<storage, read_write> indirect: Indirect;
 
-@compute @workgroup_size(1, 1, 1) fn cs(@builtin(global_invocation_id) id: vec3<u32>) {
-    let root: Cluster = clusters[62];
-    let threshold: f32 = length(((root.min + root.max) / 2) - uniforms.cameraPosition) * 0.05;
+@compute @workgroup_size(256, 1, 1) fn cs(@builtin(global_invocation_id) id: vec3<u32>) {
+    let threshold: f32 = length(uniforms.cameraPosition) * 0.1;
 
     let cluster: Cluster = clusters[id.x];
     let clusterError: f32 = cluster.error;

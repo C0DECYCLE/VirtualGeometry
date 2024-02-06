@@ -44,8 +44,8 @@
 ### Compiletime
 
 1.  import and parse geometry
-2.  divde into clusters, merge upwards and simplify and build tree
-    (binary, quad or dag) encode in linear format
+2.  divde into leave clusters, group, merge, simplify, split into new clusters
+    upwards to build dag, encode in linear format later custom tree based on parenterror
 3.  build attributes for all clusters
     for each instance (=root cluster) build its info
 
@@ -84,7 +84,6 @@
 
 -   Entity deletion
 -   improve clustering to reduce sprinkeld in triangles between stuff
--   improve group based on shared triangles
 
 ### Clustering
 
@@ -115,3 +114,19 @@
     //solution: take level of clusters of entire mesh, group nearest clusters based on their bounds, then simplify each group to half the triangles and split again into clusters, as a result forming the next level of clusters (edges are only locked over 2 levels so cannot accomilate)
 
     //difficulty later findingcut of the dag
+
+    //CORE:
+    //get working with all models -> solution: allowMikroCracks flag to allow collapse of smallest border edges
+    //only based on object distance not cluster distance!
+    //error random - bad?
+    //multiple instances
+
+    //OPTIMIZE:
+    //improve code, refactor reduce memory and redudant stuff (children/parentlength into cluster/group memory)
+    //evaluate each cluster currently
+    // -> should do tree based not evaluate children with persistant threads and atomic queue
+    // -> tree based on parenterror? for deciding to traverse children?
+    //cluster frustum culling
+    //instance frustum culling
+
+    //freeze mode for debug

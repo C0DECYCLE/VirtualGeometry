@@ -3,6 +3,7 @@
  * Written by Noah Mattia Bussinger, February 2024
  */
 
+import { AllowMicroCracks } from "../constants.js";
 import { EdgeIdentifier, VertexId } from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
@@ -24,12 +25,9 @@ export class GeometrySimplify {
         const border: Set<VertexId> = self.FindBorderVertices(edges);
         const reduce: int = Math.ceil(triangles.length / 2);
         while (triangles.length > reduce) {
-            try {
-                // prettier-ignore
-                self.CollapseSmallest(count, vertcies, triangles, edges, border);
-            } catch (e) {
+            if (!self.CollapseEdge(count, vertcies, triangles, edges, border)) {
                 throw new Error(
-                    "collapse stopped at " + triangles.length + "/" + reduce,
+                    `GeometrySimplify: Collapse stopped at ${triangles.length}/${reduce}. Change model or allow micro cracks.`,
                 );
             }
         }
@@ -48,15 +46,19 @@ export class GeometrySimplify {
         return vertices;
     }
 
-    private static CollapseSmallest(
+    private static CollapseEdge(
         count: Count,
         vertices: Vertex[],
         triangles: Triangle[],
         edges: Map<EdgeIdentifier, Edge>,
         border: Set<VertexId>,
-    ): void {
-        const collapse: Edge = GeometrySimplify.GetNextCollapse(edges, border);
-        const replacement: Vertex = GeometrySimplify.CreateReplacement(
+    ): boolean {
+        const self = GeometrySimplify;
+        const collapse: Nullable<Edge> = self.GetNextCollapse(edges, border);
+        if (!collapse) {
+            return false;
+        }
+        const replacement: Vertex = self.CreateReplacement(
             count,
             collapse,
             border,
@@ -71,18 +73,18 @@ export class GeometrySimplify {
                 collapse.triangles.includes(triangle) ||
                 (aInTriangle !== -1 && bInTriangle !== -1)
             ) {
-                GeometrySimplify.DeleteBadEdges(triangle, collapse, edges);
+                self.DeleteBadEdges(triangle, collapse, edges);
                 remove.push(i);
                 continue;
             }
             if (aInTriangle !== -1) {
-                GeometrySimplify.DeleteBadEdges(triangle, collapse, edges);
+                self.DeleteBadEdges(triangle, collapse, edges);
                 triangle.vertices[aInTriangle] = replacement;
                 GeometryHelper.RegisterEdges(edges, triangle);
                 continue;
             }
             if (bInTriangle !== -1) {
-                GeometrySimplify.DeleteBadEdges(triangle, collapse, edges);
+                self.DeleteBadEdges(triangle, collapse, edges);
                 triangle.vertices[bInTriangle] = replacement;
                 GeometryHelper.RegisterEdges(edges, triangle);
                 continue;
@@ -91,12 +93,13 @@ export class GeometrySimplify {
         for (let i: int = remove.length - 1; i >= 0; i--) {
             triangles.splice(remove[i], 1);
         }
+        return true;
     }
 
     private static GetNextCollapse(
         edges: Map<EdgeIdentifier, Edge>,
         border: Set<VertexId>,
-    ): Edge {
+    ): Nullable<Edge> {
         const list: Edge[] = Array.from(edges.values());
         assert(list.length > 0);
         let shortest: Nullable<Edge> = null;
@@ -117,7 +120,18 @@ export class GeometrySimplify {
                 shortest = edge;
             }
         }
-        assert(shortest);
+        if (!shortest && AllowMicroCracks) {
+            for (let i: int = 0; i < list.length; i++) {
+                const edge: Edge = list[i];
+                if (!shortest) {
+                    shortest = edge;
+                    continue;
+                }
+                if (edge.lengthQuadratic < shortest.lengthQuadratic) {
+                    shortest = edge;
+                }
+            }
+        }
         return shortest;
     }
 
@@ -131,18 +145,18 @@ export class GeometrySimplify {
         } else if (border.has(edge.vertices[1].id)) {
             return edge.vertices[1];
         }
-
-        const a: Vec3 = edge.triangles[0].getNormal();
-        const b: Vec3 = edge.triangles[1].getNormal();
-        const dot: float = a.dot(b);
-        const length: float = Math.sqrt(edge.lengthQuadratic);
-        const normal: Vec3 = a.add(b).scale(0.5);
-
         const position: Vec3 = new Vec3()
             .copy(edge.vertices[0].position)
             .add(edge.vertices[1].position)
-            .scale(0.5)
-            .add(normal.scale(dot * length * 0.25));
+            .scale(0.5);
+        if (edge.lengthQuadratic > 0) {
+            const a: Vec3 = edge.triangles[0].getNormal();
+            const b: Vec3 = edge.triangles[1].getNormal();
+            const dot: float = a.dot(b);
+            const length: float = Math.sqrt(edge.lengthQuadratic);
+            const normal: Vec3 = a.add(b).scale(0.5);
+            position.add(normal.scale(dot * length * 0.25));
+        }
         return new Vertex(count, position.toArray());
     }
 

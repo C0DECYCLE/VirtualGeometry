@@ -122,6 +122,9 @@ export class Vec3 {
             z = x;
             y = x;
         }
+        if (x === 0 || y === 0 || z === 0) {
+            throw new Error("Vec3: Divide by zero.");
+        }
         this.x /= x;
         this.y /= y;
         this.z /= z;

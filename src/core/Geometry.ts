@@ -60,41 +60,29 @@ export class Geometry {
 
         log(leaves.length); //
 
-        for (let i: int = 0; i < leaves.length; i++) {
-            leaves[i].error = Math.random() * 0.2;
-        }
-
         let previous: Cluster[] = leaves;
-        let exit: boolean = false;
-        while (previous.length > 1 && !exit) {
+        while (previous.length > 1) {
             const groups: Cluster[][] = GeometryGrouping.Group(previous);
             const next: Cluster[] = [];
             for (let i: int = 0; i < groups.length; i++) {
-                //
-                try {
-                    const children: Cluster[] = groups[i];
-                    let maxChildrenError: float = 0;
-                    for (let j: int = 0; j < children.length; j++) {
-                        maxChildrenError = Math.max(
-                            maxChildrenError,
-                            children[j].error,
-                        );
-                    }
-                    const { triangles, edges } = merge(count, children);
-                    simplify(count, this.vertices, triangles, edges);
-                    const parents: Cluster[] = clusterize(count, triangles);
-                    const parentError: float =
-                        maxChildrenError + Math.random() * 0.2;
-                    for (let j: int = 0; j < parents.length; j++) {
-                        parents[j].error = parentError;
-                    }
-                    this.setChildrenParents(children, parents);
-                    next.push(...parents);
-                    //
-                } catch (e) {
-                    log(e, i, next.length); //
-                    exit = true;
+                const children: Cluster[] = groups[i];
+                let maxChildrenError: float = 0;
+                for (let j: int = 0; j < children.length; j++) {
+                    maxChildrenError = Math.max(
+                        maxChildrenError,
+                        children[j].error,
+                    );
                 }
+                const { triangles, edges } = merge(count, children);
+                simplify(count, this.vertices, triangles, edges);
+                const parents: Cluster[] = clusterize(count, triangles);
+                const parentError: float =
+                    maxChildrenError + Math.random() * 0.9 + 0.1;
+                for (let j: int = 0; j < parents.length; j++) {
+                    parents[j].error = parentError;
+                }
+                this.setChildrenParents(children, parents);
+                next.push(...parents);
             }
             hirarchy.push(...next);
             previous = next;
