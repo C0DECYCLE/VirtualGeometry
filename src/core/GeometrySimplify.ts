@@ -6,7 +6,7 @@
 import { EdgeIdentifier, VertexId } from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
-import { Nullable, int } from "../utils.type.js";
+import { Nullable, float, int } from "../utils.type.js";
 import { Count } from "./Count.js";
 import { Edge } from "./Edge.js";
 import { GeometryHelper } from "./GeometryHelper.js";
@@ -131,18 +131,18 @@ export class GeometrySimplify {
         } else if (border.has(edge.vertices[1].id)) {
             return edge.vertices[1];
         }
-        /*
+
         const a: Vec3 = edge.triangles[0].getNormal();
         const b: Vec3 = edge.triangles[1].getNormal();
         const dot: float = a.dot(b);
         const length: float = Math.sqrt(edge.lengthQuadratic);
         const normal: Vec3 = a.add(b).scale(0.5);
-        */
+
         const position: Vec3 = new Vec3()
             .copy(edge.vertices[0].position)
             .add(edge.vertices[1].position)
-            .scale(0.5);
-        //.add(normal.scale(dot * length * 0.25));
+            .scale(0.5)
+            .add(normal.scale(dot * length * 0.25));
         return new Vertex(count, position.toArray());
     }
 

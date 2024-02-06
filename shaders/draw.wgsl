@@ -9,7 +9,8 @@ alias VertexId = u32;
 struct Uniforms {
     viewProjection: mat4x4f,
     viewMode: u32,
-    resolution: vec2f
+    resolution: vec2f,
+    cameraPosition: vec3f,
 };
 
 struct Vertex {
@@ -17,8 +18,9 @@ struct Vertex {
 };
 
 struct VertexShaderOut {
-    @builtin(position) position: vec4f,
-    @interpolate(flat) @location(0) color: vec3f
+    @builtin(position) clipspace: vec4f,
+    @interpolate(flat) @location(0) color: vec3f,
+    @location(1) position: vec3f
 };
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -31,62 +33,10 @@ struct VertexShaderOut {
     let vertexId: VertexId = triangles[clusterId * 128 * 3 + invokeId];
     let vertex: Vertex = vertecies[vertexId];
     var position: vec3f = vertex.position;
-
-    /*
-    if (clusterIndex >= 31) {
-        position.y -= 2;
-        if (clusterIndex >= 31 + 16) {
-            position.y -= 2;
-            if (clusterIndex >= 31 + 16 + 8) {
-                position.y -= 2;
-                if (clusterIndex >= 31 + 16 + 8 + 4) {
-                    position.y -= 2;
-                    if (clusterIndex >= 31 + 16 + 8 + 4 + 2) {
-                        position.y -= 2;
-                    }
-                }
-            }
-        }
-    }
-    */
-    /*
-    if (clusterIndex >= 136) {
-        position.y -= 2;
-        if (clusterIndex >= 136 + 68) {
-            position.y -= 2;
-            if (clusterIndex >= 136 + 68 + 34) {
-                position.y -= 2;
-                if (clusterIndex >= 136 + 68 + 34 + 17) {
-                    position.y -= 2;
-                }
-            }
-        }
-    }
-    */
-    /*
-    if (clusterIndex >= 543) {
-        position.y -= 2;
-        if (clusterIndex >= 543 + 272) {
-            position.y -= 2;
-            if (clusterIndex >= 543 + 272 + 136) {
-                position.y -= 2;
-                if (clusterIndex >= 543 + 272 + 136 + 68) {
-                    position.y -= 2;
-                }
-            }
-        }
-    }
-    */
-    /*
-    if (clusterIndex >= 681) {
-        position.y -= 4;
-    }
-    */
-
-
     var out: VertexShaderOut;
-    out.position = uniforms.viewProjection * vec4f(position, 1);
+    out.clipspace = uniforms.viewProjection * vec4f(position, 1);
     out.color = getColor(uniforms.viewMode, invokeId, clusterId);
+    out.position = position;
     return out;
 }
 
@@ -97,16 +47,14 @@ fn getColor(mode: u32, triangle: u32, cluster: u32) -> vec3f {
     }
     if (mode == 1) {
         let x: f32 = f32(cluster) + 1;
-        /*
-        if (batchIndex >= 543 + 272 + 136 + 68) {
-            uid -= 1 - f32(batchIndex % 2);
-        }
-        */
         return fract(vec3f(x * 0.1443, x * 0.6841, x * 0.7323));
     }
     return vec3f();
 }
 
 @fragment fn fs(in: VertexShaderOut) -> @location(0) vec4f {
+    if (uniforms.viewMode == 2) {
+        return vec4f(normalize(cross(dpdx(in.position), dpdy(in.position))) * 0.5 + 0.5, 1);
+    }
     return vec4f(in.color, 1);
 }

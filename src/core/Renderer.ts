@@ -189,6 +189,7 @@ export class Renderer {
         assert(this.control && this.camera && this.device);
         this.control.update();
         this.handlers.uniform.viewProjection(this.camera.update());
+        this.handlers.uniform.cameraPosition(this.camera.position);
         this.handlers.uniform.synchronize(this.device);
         this.handlers.entity.synchronize();
     }
@@ -209,7 +210,7 @@ export class Renderer {
         evaluationPass.setPipeline(this.handlers.pipeline.evaluation!);
         evaluationPass.setBindGroup(0, this.handlers.bindGroup.evaluation);
         evaluationPass.dispatchWorkgroups(
-            1 /*this.handlers.geometry.count.clusters*/,
+            this.handlers.geometry.count.clusters,
             1,
             1,
         );

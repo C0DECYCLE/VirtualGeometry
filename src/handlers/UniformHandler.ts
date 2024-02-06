@@ -5,6 +5,7 @@
 
 import { Bytes4, UniformsLayout } from "../constants.js";
 import { Mat4 } from "../utilities/Mat4.js";
+import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
 import { Nullable, int } from "../utils.type.js";
 
@@ -40,6 +41,10 @@ export class UniformHandler {
     public resolution(width: int, height: int): void {
         this.floatData[18] = width;
         this.floatData[19] = height;
+    }
+
+    public cameraPosition(position: Vec3): void {
+        position.store(this.floatData, 20);
     }
 
     public synchronize(device: GPUDevice): void {
