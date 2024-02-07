@@ -38,17 +38,18 @@ export class UniformHandler {
         this.uIntData[16] = mode;
     }
 
-    public resolution(width: int, height: int): void {
-        this.floatData[18] = width;
-        this.floatData[19] = height;
-    }
-
     public cameraPosition(position: Vec3): void {
         position.store(this.floatData, 20);
     }
 
-    public synchronize(device: GPUDevice): void {
+    public gpuSync(device: GPUDevice): void {
         assert(this.buffer);
-        device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer);
+        device.queue.writeBuffer(
+            this.buffer,
+            0,
+            this.arrayBuffer,
+            0,
+            this.arrayBuffer.byteLength,
+        );
     }
 }

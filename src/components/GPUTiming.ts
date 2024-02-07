@@ -11,18 +11,20 @@ export class GPUTiming {
 
     private readonly querySet: GPUQuerySet;
     private readonly queryBuffer: GPUBuffer;
-    private readonly queryReadbackBuffer: GPUBuffer;
-    public readonly timestampWrites: GPURenderPassTimestampWrites;
+    private readonly readbackBuffer: GPUBuffer;
+    public readonly timestampWrites:
+        | GPURenderPassTimestampWrites
+        | GPUComputePassTimestampWrites;
 
     public constructor(device: GPUDevice) {
         this.querySet = this.createSet(device);
         this.queryBuffer = this.createBuffer(device);
-        this.queryReadbackBuffer = this.createReadback(device);
+        this.readbackBuffer = this.createReadback(device);
         this.timestampWrites = {
             querySet: this.querySet,
             beginningOfPassWriteIndex: 0,
             endOfPassWriteIndex: 1,
-        } as GPURenderPassTimestampWrites;
+        } as GPURenderPassTimestampWrites | GPUComputePassTimestampWrites;
     }
 
     private createSet(device: GPUDevice): GPUQuerySet {
@@ -58,27 +60,27 @@ export class GPUTiming {
             this.queryBuffer,
             0,
         );
-        if (this.queryReadbackBuffer.mapState !== "unmapped") {
+        if (this.readbackBuffer.mapState !== "unmapped") {
             return;
         }
         encoder.copyBufferToBuffer(
             this.queryBuffer,
             0,
-            this.queryReadbackBuffer,
+            this.readbackBuffer,
             0,
-            this.queryReadbackBuffer.size,
+            this.readbackBuffer.size,
         );
     }
 
     public readback(callback: (ms: float) => void): void {
-        if (this.queryReadbackBuffer.mapState !== "unmapped") {
+        if (this.readbackBuffer.mapState !== "unmapped") {
             return;
         }
-        this.queryReadbackBuffer.mapAsync(GPUMapMode.READ).then(() => {
+        this.readbackBuffer.mapAsync(GPUMapMode.READ).then(() => {
             const nanos: BigInt64Array = new BigInt64Array(
-                this.queryReadbackBuffer.getMappedRange().slice(0),
+                this.readbackBuffer.getMappedRange().slice(0),
             );
-            this.queryReadbackBuffer.unmap();
+            this.readbackBuffer.unmap();
             const nanoDelta: float = Number(nanos[1] - nanos[0]);
             callback(nanoDelta / 1_000_000);
         });

@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { EntityLimit, EntityStride } from "../constants.js";
+import { Bytes4, EntityLimit, EntityStride } from "../constants.js";
 import { assert } from "../utilities/utils.js";
 import { Nullable, int } from "../utils.type.js";
 import { Entity } from "../core/Entity.js";
@@ -52,7 +52,7 @@ export class EntityHandler {
         this.changes.set(index, change);
     }
 
-    public synchronize(): void {
+    public gpuSync(): void {
         if (this.changes.size === 0) {
             return;
         }
@@ -88,7 +88,7 @@ export class EntityHandler {
 
     private pushWrite(writes: BufferWrite[], offset: int): void {
         writes.push({
-            bufferOffset: offset * this.data.BYTES_PER_ELEMENT,
+            bufferOffset: offset * Bytes4,
             dataOffset: offset,
             size: EntityStride,
         } as BufferWrite);

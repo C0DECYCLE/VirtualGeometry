@@ -20,6 +20,7 @@ import { PipelineHandler } from "../handlers/PipelineHandler.js";
 import { BindGroupHandler } from "../handlers/BindGroupHandler.js";
 import { GeometryKey } from "../core.type.js";
 import { Entity } from "./Entity.js";
+import { ClusterHandler } from "../handlers/ClusterHandler.js";
 
 export class Renderer {
     public readonly analytics: Analytics;
@@ -32,6 +33,7 @@ export class Renderer {
         attachment: AttachmentHandler;
         pipeline: PipelineHandler;
         bindGroup: BindGroupHandler;
+        cluster: ClusterHandler;
         draw: DrawHandler;
     };
     private camera: Nullable<Camera>;
@@ -57,6 +59,7 @@ export class Renderer {
             attachment: new AttachmentHandler(this),
             pipeline: new PipelineHandler(this),
             bindGroup: new BindGroupHandler(this),
+            cluster: new ClusterHandler(this),
             draw: new DrawHandler(this),
         };
         this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -83,11 +86,7 @@ export class Renderer {
         await this.prepareHandlers();
         this.prepareCameraControl();
         assert(this.canvas);
-        this.handlers.uniform.resolution(this.canvas.width, this.canvas.height);
         this.isPrepared = true;
-        /////
-        this.handlers.uniform.viewMode(1);
-        //this.handlers.draw.synchronize(this.handlers.geometry.count.clusters);
     }
     private async prepareGPU(): Promise<void> {
         this.canvas = this.createCanvas();
@@ -151,6 +150,7 @@ export class Renderer {
         this.handlers.texture.prepare(this.device, this.canvas);
         this.handlers.attachment.prepare();
         await this.handlers.pipeline.prepare();
+        this.handlers.cluster.prepare();
         this.handlers.draw.prepare();
         this.handlers.bindGroup.prepare();
         this.handlers.draw.encode();
@@ -180,44 +180,30 @@ export class Renderer {
     private frame(now: float, update?: EmptyCallback): void {
         update?.();
         this.analytics.preFrame();
-        this.synchronize();
-        this.render();
-        this.analytics.postFrame(now);
+        this.gpuSync();
+        this.execute();
+        this.analytics.postFrame(now, this.handlers.draw);
     }
 
-    private synchronize(): void {
+    private gpuSync(): void {
         assert(this.control && this.camera && this.device);
         this.control.update();
         this.handlers.uniform.viewProjection(this.camera.update());
         this.handlers.uniform.cameraPosition(this.camera.position);
-        this.handlers.uniform.synchronize(this.device);
-        this.handlers.entity.synchronize();
+        this.handlers.uniform.gpuSync(this.device);
+        this.handlers.entity.gpuSync();
     }
 
-    private render(): void {
+    private execute(): void {
         assert(this.device);
         const encoder: GPUCommandEncoder = this.device.createCommandEncoder({
             label: "command-encoder",
         } as GPUObjectDescriptorBase);
-
-        //
-        this.handlers.draw.synchronize(0);
-        //
-        const evaluationPass: GPUComputePassEncoder = encoder.beginComputePass({
-            label: "evaluation-pass",
-            timestampWrites: this.analytics.getEvaluationPassTimestamps(),
-        } as GPUComputePassDescriptor);
-        evaluationPass.setPipeline(this.handlers.pipeline.evaluation!);
-        evaluationPass.setBindGroup(0, this.handlers.bindGroup.evaluation);
-        evaluationPass.dispatchWorkgroups(
-            this.handlers.geometry.count.clusters / 256,
-            1,
-            1,
-        );
-        evaluationPass.end();
-        //
-
-        this.handlers.draw.render(encoder);
+        this.handlers.cluster.setExecute(this.handlers.geometry.count.clusters);
+        this.handlers.draw.setExecute(0);
+        this.handlers.cluster.execute(encoder);
+        this.handlers.draw.execute(encoder);
+        this.handlers.draw.resolve(encoder);
         this.analytics.resolve(encoder);
         this.device.queue.submit([encoder.finish()]);
     }

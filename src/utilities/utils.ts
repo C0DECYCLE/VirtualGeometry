@@ -35,10 +35,9 @@ export function between(
     return value > Math.min(lower, upper) && value < Math.max(lower, upper);
 }
 
-export function dotit(value: int | float): string {
-    return Math.round(value)
-        .toString()
-        .replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1'");
+export function dotit(value: int | float | string): string {
+    value = typeof value === "string" ? value : value.toFixed(0);
+    return value.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1'");
 }
 
 export function clamp(

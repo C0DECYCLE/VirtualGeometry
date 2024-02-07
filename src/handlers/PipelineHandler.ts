@@ -11,30 +11,30 @@ import { Renderer } from "../core/Renderer.js";
 export class PipelineHandler {
     private readonly renderer: Renderer;
 
-    public evaluation: Nullable<GPUComputePipeline>;
+    public cluster: Nullable<GPUComputePipeline>;
     public draw: Nullable<GPURenderPipeline>;
 
     public constructor(renderer: Renderer) {
         this.renderer = renderer;
-        this.evaluation = null;
+        this.cluster = null;
         this.draw = null;
     }
 
     public async prepare(): Promise<void> {
         const device: Nullable<GPUDevice> = this.renderer.device;
         assert(device);
-        this.evaluation = await this.createEvaluationPipeline(device);
+        this.cluster = await this.createClusterPipeline(device);
         this.draw = await this.createDrawPipeline(device);
     }
 
-    private async createEvaluationPipeline(
+    private async createClusterPipeline(
         device: GPUDevice,
     ): Promise<GPUComputePipeline> {
         const shader: Nullable<GPUShaderModule> =
-            this.renderer.handlers.shader.evaluationModule;
+            this.renderer.handlers.shader.clusterModule;
         assert(shader);
         return await device.createComputePipelineAsync({
-            label: "evaluation-pipeline",
+            label: "cluster-compute-pipeline",
             layout: "auto",
             compute: {
                 module: shader,

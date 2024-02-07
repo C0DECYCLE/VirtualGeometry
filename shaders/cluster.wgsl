@@ -8,7 +8,6 @@ alias ClusterId = u32;
 struct Uniforms {
     viewProjection: mat4x4f,
     viewMode: u32,
-    resolution: vec2f,
     cameraPosition: vec3f,
 };
 
@@ -32,7 +31,7 @@ struct Indirect {
 @group(0) @binding(2) var<storage, read_write> tasks: array<ClusterId>;
 @group(0) @binding(3) var<storage, read_write> indirect: Indirect;
 
-@compute @workgroup_size(256, 1, 1) fn cs(@builtin(global_invocation_id) id: vec3<u32>) {
+@compute @workgroup_size(1, 1, 1) fn cs(@builtin(global_invocation_id) id: vec3<u32>) {
     let threshold: f32 = length(uniforms.cameraPosition) * 0.1;
 
     let cluster: Cluster = clusters[id.x];

@@ -13,3 +13,5 @@ renderer.add(new Entity("test"));
 renderer.run();
 
 (window as any).renderer = renderer;
+
+renderer.handlers.uniform.viewMode(1);

@@ -4,8 +4,9 @@
  */
 
 import { AnalyticSamples } from "../constants.js";
+import { DrawHandler } from "../handlers/DrawHandler.js";
 import { RollingAverage } from "../utilities/RollingAverage.js";
-import { assert } from "../utilities/utils.js";
+import { assert, dotit } from "../utilities/utils.js";
 import { Nullable, float, int } from "../utils.type.js";
 import { GPUTiming } from "./GPUTiming.js";
 import { Stats } from "./Stats.js";
@@ -14,21 +15,21 @@ export class Analytics {
     private readonly deltas: {
         frame: RollingAverage;
         cpu: RollingAverage;
-        gpuEvaluation: RollingAverage;
-        gpuRender: RollingAverage;
+        gpuCluster: RollingAverage;
+        gpuDraw: RollingAverage;
     };
     private readonly stats: Stats;
     private timings: Nullable<{
-        gpuEvaluation: GPUTiming;
-        gpuRender: GPUTiming;
+        gpuCluster: GPUTiming;
+        gpuDraw: GPUTiming;
     }>;
 
     public constructor() {
         this.deltas = {
             frame: new RollingAverage(AnalyticSamples),
             cpu: new RollingAverage(AnalyticSamples),
-            gpuEvaluation: new RollingAverage(AnalyticSamples),
-            gpuRender: new RollingAverage(AnalyticSamples),
+            gpuCluster: new RollingAverage(AnalyticSamples),
+            gpuDraw: new RollingAverage(AnalyticSamples),
         };
         this.stats = this.createStats();
         this.timings = null;
@@ -36,29 +37,27 @@ export class Analytics {
 
     private createStats(): Stats {
         const stats: Stats = new Stats();
-        const deltaKeys: string[] = Object.keys(this.deltas);
-        for (let i: int = 0; i < deltaKeys.length; i++) {
-            stats.set(`${deltaKeys[i]} delta`, 0);
-        }
+        stats.set("frame delta", 0);
+        stats.set("clusters post", 0);
         return stats;
     }
 
     public prepare(device: GPUDevice): void {
         this.timings = {
-            gpuEvaluation: new GPUTiming(device),
-            gpuRender: new GPUTiming(device),
+            gpuCluster: new GPUTiming(device),
+            gpuDraw: new GPUTiming(device),
         };
         this.stats.show();
     }
 
-    public getEvaluationPassTimestamps(): GPURenderPassTimestampWrites {
+    public getClusterPassTimestamps(): GPUComputePassTimestampWrites {
         assert(this.timings);
-        return this.timings.gpuEvaluation.timestampWrites;
+        return this.timings.gpuCluster.timestampWrites;
     }
 
-    public getRenderPassTimestamps(): GPURenderPassTimestampWrites {
+    public getDrawPassTimestamps(): GPURenderPassTimestampWrites {
         assert(this.timings);
-        return this.timings.gpuRender.timestampWrites;
+        return this.timings.gpuDraw.timestampWrites;
     }
 
     public preFrame(): void {
@@ -67,43 +66,66 @@ export class Analytics {
 
     public resolve(encoder: GPUCommandEncoder): void {
         assert(this.timings);
-        this.timings.gpuEvaluation.resolve(encoder);
-        this.timings.gpuRender.resolve(encoder);
+        this.timings.gpuCluster.resolve(encoder);
+        this.timings.gpuDraw.resolve(encoder);
     }
 
-    public postFrame(now: float): void {
+    public postFrame(now: float, draws: DrawHandler): void {
+        const deltas = this.deltas;
+        const stats = this.stats;
+        const deltaToFps = this.deltaToFps;
         assert(this.timings);
-        this.stats.time("cpu delta", "cpu delta");
-        this.deltas.cpu.sample(this.stats.get("cpu delta")!);
-        this.stats.set("frame delta", now - this.stats.get("frame delta")!);
-        this.deltas.frame.sample(this.stats.get("frame delta")!);
-        this.timings.gpuEvaluation.readback((ms: float) => {
-            this.stats.set("gpu evaluation delta", ms);
-            this.deltas.gpuEvaluation.sample(ms);
-        });
-        this.timings.gpuRender.readback((ms: float) => {
-            this.stats.set("gpu render delta", ms);
-            this.deltas.gpuRender.sample(ms);
-        });
-        const gpuSum: float =
-            this.deltas.gpuEvaluation.get() + this.deltas.gpuRender.get();
-        // prettier-ignore
-        this.stats.update(`
-            <b>frame rate: ${(1_000 / this.deltas.frame.get()).toFixed(
-                0,
-            )} fps</b><br>
-            frame delta: ${this.deltas.frame.get().toFixed(2)} ms<br>
+
+        stats.time("cpu delta", "cpu delta");
+        deltas.cpu.sample(stats.get("cpu delta")!);
+
+        stats.set("frame delta", now - stats.get("frame delta")!);
+        deltas.frame.sample(stats.get("frame delta")!);
+
+        const gpuSum: float = deltas.gpuCluster.get() + deltas.gpuDraw.get();
+        this.timings.gpuCluster.readback((ms: float) =>
+            deltas.gpuCluster.sample(ms),
+        );
+        this.timings.gpuDraw.readback((ms: float) => deltas.gpuDraw.sample(ms));
+
+        draws.readback((instanceCount: int) =>
+            stats.set("clusters post", instanceCount * 1),
+        );
+
+        stats.update(`
+            <b>frame rate: ${deltaToFps(deltas.frame.get())} fps</b><br>
+            frame delta: ${dotit(deltas.frame.get().toFixed(2))} ms<br>
             <br>
-            <b>cpu rate: ${(1_000 / this.deltas.cpu.get()).toFixed(
-                0,
-            )} fps</b><br>
-            cpu delta: ${this.deltas.cpu.get().toFixed(2)} ms<br>
+            <b>cpu rate: ${deltaToFps(deltas.cpu.get())} fps</b><br>
+            cpu delta: ${dotit(deltas.cpu.get().toFixed(2))} ms<br>
             <br>
-            <b>gpu rate: ${(1_000 / gpuSum).toFixed(0)} fps</b><br>
-            gpu delta: ${gpuSum.toFixed(2)} ms<br>
-            - gpu evaluation delta: ${this.deltas.gpuEvaluation.get().toFixed(2)} ms<br>
-            - gpu render delta: ${this.deltas.gpuRender.get().toFixed(2)} ms<br>
+            <b>gpu rate: ${deltaToFps(gpuSum)} fps</b><br>
+            gpu delta: ${dotit(gpuSum.toFixed(2))} ms<br>
+            | instance: ? ms<br>
+            | cluster: ${dotit(deltas.gpuCluster.get().toFixed(2))} ms<br>
+            | draw: ${dotit(deltas.gpuDraw.get().toFixed(2))} ms<br>
+            <br>
+            <b>instances:</b><br>
+            | pre: ? // all instances known to renderer<br>
+            | post: ? // ones passed the culling<br>
+            <br>
+            <b>clusters:</b><br>
+            | pre: ? // sum of clusters of each passed instance<br>
+            | post: ${dotit(stats.get("clusters post")!)}<br>
+            <br>
+            <b>triangles:</b><br>
+            | pre: ? // sum of leave triangles of all instance<br>
+            | post: ${dotit(stats.get("clusters post")! * 128)}<br>
+            <br>
+            <b>vertices:</b><br>
+            | pre: ? // sum of leave vertices of all instance<br> 
+            | post: ${dotit(stats.get("clusters post")! * 128 * 3)}<br>
         `);
-        this.stats.set("frame delta", now);
+
+        stats.set("frame delta", now);
+    }
+
+    private deltaToFps(ms: float): string {
+        return dotit(1_000 / ms);
     }
 }

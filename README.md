@@ -84,6 +84,7 @@
 
 -   Entity deletion
 -   improve clustering to reduce sprinkeld in triangles between stuff
+-   manual pipeline bind group layouts
 
 ### Clustering
 
@@ -130,3 +131,13 @@
     //instance frustum culling
 
     //freeze mode for debug
+    //per instance shading mode
+    //debug info stats:
+    // -> instances pre cull
+    // -> instances post cull
+    // -> clusters pre cull
+    // -> clusters post cull
+    // -> triangles pre cull
+    // -> triangles post cull
+    // -> vertices pre cull
+    // -> vertices post cull

@@ -28,7 +28,7 @@ export const VertexStride: int = Vec3Layout;
 
 export const AnalyticSamples: int = 60;
 
-export const UniformsLayout: int = 4 * 4 + 1 + 1 + 2 + 3 + 1;
+export const UniformsLayout: int = 4 * 4 + 1 + 3 + 3 + 1;
 
 export const EntityStride: int = Vec3Layout;
 
@@ -39,6 +39,6 @@ export const TextureFormats = {
 };
 
 export const ShaderPaths = {
-    evaluation: "./shaders/evaluation.wgsl",
+    cluster: "./shaders/cluster.wgsl",
     draw: "./shaders/draw.wgsl",
 };

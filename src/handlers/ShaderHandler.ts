@@ -7,18 +7,18 @@ import { ShaderPaths } from "../constants.js";
 import { Nullable } from "../utils.type.js";
 
 export class ShaderHandler {
-    public evaluationModule: Nullable<GPUShaderModule>;
+    public clusterModule: Nullable<GPUShaderModule>;
     public drawModule: Nullable<GPUShaderModule>;
 
     public constructor() {
-        this.evaluationModule = null;
+        this.clusterModule = null;
         this.drawModule = null;
     }
 
     public async prepare(device: GPUDevice): Promise<void> {
-        this.evaluationModule = await this.requestModule(
+        this.clusterModule = await this.requestModule(
             device,
-            ShaderPaths.evaluation,
+            ShaderPaths.cluster,
         );
         this.drawModule = await this.requestModule(device, ShaderPaths.draw);
     }

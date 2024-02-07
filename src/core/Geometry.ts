@@ -57,9 +57,6 @@ export class Geometry {
         const simplify = GeometrySimplify.Simplify;
         const clusterize = GeometryClustering.ClusterizeWithoutAdjacency;
         const hirarchy: Cluster[] = [...leaves];
-
-        log(leaves.length); //
-
         let previous: Cluster[] = leaves;
         while (previous.length > 1) {
             const groups: Cluster[][] = GeometryGrouping.Group(previous);
@@ -86,10 +83,7 @@ export class Geometry {
             }
             hirarchy.push(...next);
             previous = next;
-
-            log(next.length); //
         }
-
         return hirarchy;
     }
 

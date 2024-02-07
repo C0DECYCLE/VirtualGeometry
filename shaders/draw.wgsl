@@ -9,7 +9,6 @@ alias VertexId = u32;
 struct Uniforms {
     viewProjection: mat4x4f,
     viewMode: u32,
-    resolution: vec2f,
     cameraPosition: vec3f,
 };
 

@@ -14,32 +14,32 @@ import { DrawHandler } from "./DrawHandler.js";
 export class BindGroupHandler {
     private readonly renderer: Renderer;
 
-    public evaluation: Nullable<GPUBindGroup>;
+    public cluster: Nullable<GPUBindGroup>;
     public draw: Nullable<GPUBindGroup>;
 
     public constructor(renderer: Renderer) {
         this.renderer = renderer;
-        this.evaluation = null;
+        this.cluster = null;
         this.draw = null;
     }
 
     public prepare(): void {
         const device: Nullable<GPUDevice> = this.renderer.device;
         assert(device);
-        this.evaluation = this.createEvaluationBindGroup(device);
+        this.cluster = this.createClusterBindGroup(device);
         this.draw = this.createDrawBindGroup(device);
     }
 
-    private createEvaluationBindGroup(device: GPUDevice): GPUBindGroup {
+    private createClusterBindGroup(device: GPUDevice): GPUBindGroup {
         const uniforms: UniformHandler = this.renderer.handlers.uniform;
         const geometries: GeometryHandler = this.renderer.handlers.geometry;
         const draw: DrawHandler = this.renderer.handlers.draw;
         const pipelines: PipelineHandler = this.renderer.handlers.pipeline;
-        assert(pipelines.evaluation && draw.indirectBuffer && uniforms.buffer);
+        assert(pipelines.cluster && draw.indirectBuffer && uniforms.buffer);
         assert(geometries.clustersBuffer && geometries.tasksBuffer);
         return device.createBindGroup({
-            label: "evaluation-bindgroup",
-            layout: pipelines.evaluation.getBindGroupLayout(0),
+            label: "cluster-bindgroup",
+            layout: pipelines.cluster.getBindGroupLayout(0),
             entries: [
                 this.createBinding(0, uniforms.buffer),
                 this.createBinding(1, geometries.clustersBuffer),
