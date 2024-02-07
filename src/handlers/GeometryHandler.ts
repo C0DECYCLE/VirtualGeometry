@@ -4,12 +4,7 @@
  */
 
 import { OBJParseResult, OBJParser } from "../components/OBJParser.js";
-import {
-    Bytes4,
-    ClusterLayout,
-    TasksLimit,
-    VertexStride,
-} from "../constants.js";
+import { Bytes4, ClusterLayout, VertexStride } from "../constants.js";
 import { ClusterId, GeometryKey } from "../core.type.js";
 import { Nullable, int } from "../utils.type.js";
 import { Cluster } from "../core/Cluster.js";
@@ -24,7 +19,6 @@ export class GeometryHandler {
     public readonly geometries: Geometry[];
 
     public clustersBuffer: Nullable<GPUBuffer>;
-    public tasksBuffer: Nullable<GPUBuffer>;
     public trianglesBuffer: Nullable<GPUBuffer>;
     public verticesBuffer: Nullable<GPUBuffer>;
 
@@ -32,7 +26,6 @@ export class GeometryHandler {
         this.count = new Count(0, 0, 0, 0);
         this.geometries = [];
         this.clustersBuffer = null;
-        this.tasksBuffer = null;
         this.trianglesBuffer = null;
         this.verticesBuffer = null;
     }
@@ -72,11 +65,6 @@ export class GeometryHandler {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         } as GPUBufferDescriptor);
         device.queue.writeBuffer(this.clustersBuffer, 0, clusters);
-        this.tasksBuffer = device.createBuffer({
-            label: "general-tasks-buffer",
-            size: TasksLimit * Bytes4,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        } as GPUBufferDescriptor);
         const { vertices, triangles } = this.constructTrianglesVertices();
         this.trianglesBuffer = device.createBuffer({
             label: "general-triangles-buffer",

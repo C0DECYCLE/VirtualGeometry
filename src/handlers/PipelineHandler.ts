@@ -11,11 +11,13 @@ import { Renderer } from "../core/Renderer.js";
 export class PipelineHandler {
     private readonly renderer: Renderer;
 
+    public instance: Nullable<GPUComputePipeline>;
     public cluster: Nullable<GPUComputePipeline>;
     public draw: Nullable<GPURenderPipeline>;
 
     public constructor(renderer: Renderer) {
         this.renderer = renderer;
+        this.instance = null;
         this.cluster = null;
         this.draw = null;
     }
@@ -23,8 +25,25 @@ export class PipelineHandler {
     public async prepare(): Promise<void> {
         const device: Nullable<GPUDevice> = this.renderer.device;
         assert(device);
+        this.instance = await this.createInstancePipeline(device);
         this.cluster = await this.createClusterPipeline(device);
         this.draw = await this.createDrawPipeline(device);
+    }
+
+    private async createInstancePipeline(
+        device: GPUDevice,
+    ): Promise<GPUComputePipeline> {
+        const shader: Nullable<GPUShaderModule> =
+            this.renderer.handlers.shader.instanceModule;
+        assert(shader);
+        return await device.createComputePipelineAsync({
+            label: "instance-compute-pipeline",
+            layout: "auto",
+            compute: {
+                module: shader,
+                entryPoint: "cs",
+            } as GPUProgrammableStage,
+        } as GPUComputePipelineDescriptor);
     }
 
     private async createClusterPipeline(

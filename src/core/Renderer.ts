@@ -21,6 +21,7 @@ import { BindGroupHandler } from "../handlers/BindGroupHandler.js";
 import { GeometryKey } from "../core.type.js";
 import { Entity } from "./Entity.js";
 import { ClusterHandler } from "../handlers/ClusterHandler.js";
+import { InstanceHandler } from "../handlers/InstanceHandler.js";
 
 export class Renderer {
     public readonly analytics: Analytics;
@@ -33,6 +34,7 @@ export class Renderer {
         attachment: AttachmentHandler;
         pipeline: PipelineHandler;
         bindGroup: BindGroupHandler;
+        instance: InstanceHandler;
         cluster: ClusterHandler;
         draw: DrawHandler;
     };
@@ -46,6 +48,7 @@ export class Renderer {
     private context: Nullable<GPUCanvasContext>;
 
     private isPrepared: boolean;
+    private isFrozen: boolean;
 
     public constructor() {
         assert(navigator.gpu);
@@ -59,6 +62,7 @@ export class Renderer {
             attachment: new AttachmentHandler(this),
             pipeline: new PipelineHandler(this),
             bindGroup: new BindGroupHandler(this),
+            instance: new InstanceHandler(this),
             cluster: new ClusterHandler(this),
             draw: new DrawHandler(this),
         };
@@ -68,6 +72,7 @@ export class Renderer {
         this.device = null;
         this.context = null;
         this.isPrepared = false;
+        this.isFrozen = false;
     }
 
     public isReady(): boolean {
@@ -150,6 +155,7 @@ export class Renderer {
         this.handlers.texture.prepare(this.device, this.canvas);
         this.handlers.attachment.prepare();
         await this.handlers.pipeline.prepare();
+        this.handlers.instance.prepare();
         this.handlers.cluster.prepare();
         this.handlers.draw.prepare();
         this.handlers.bindGroup.prepare();
@@ -199,12 +205,26 @@ export class Renderer {
         const encoder: GPUCommandEncoder = this.device.createCommandEncoder({
             label: "command-encoder",
         } as GPUObjectDescriptorBase);
-        this.handlers.cluster.setExecute(this.handlers.geometry.count.clusters);
-        this.handlers.draw.setExecute(0);
-        this.handlers.cluster.execute(encoder);
+        if (!this.isFrozen) {
+            this.handlers.instance.setExecute(1);
+            this.handlers.cluster.setExecute(
+                this.handlers.geometry.count.clusters,
+            );
+            this.handlers.draw.setExecute(0);
+            this.handlers.instance.execute(encoder);
+            this.handlers.cluster.execute(encoder);
+        }
         this.handlers.draw.execute(encoder);
         this.handlers.draw.resolve(encoder);
         this.analytics.resolve(encoder);
         this.device.queue.submit([encoder.finish()]);
+    }
+
+    public freeze(): void {
+        this.isFrozen = true;
+    }
+
+    public unfreeze(): void {
+        this.isFrozen = false;
     }
 }

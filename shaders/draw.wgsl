@@ -23,18 +23,18 @@ struct VertexShaderOut {
 };
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(0) @binding(1) var<storage, read> tasks: array<ClusterId>;
+@group(0) @binding(1) var<storage, read> clusterDraw: array<ClusterId>;
 @group(0) @binding(2) var<storage, read> triangles: array<VertexId>;
 @group(0) @binding(3) var<storage, read> vertecies: array<Vertex>;
 
-@vertex fn vs(@builtin(vertex_index) invokeId: u32, @builtin(instance_index) taskId: u32) -> VertexShaderOut {
-    let clusterId: ClusterId = tasks[taskId];
-    let vertexId: VertexId = triangles[clusterId * 128 * 3 + invokeId];
+@vertex fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> VertexShaderOut {
+    let clusterId: ClusterId = clusterDraw[instanceIndex];
+    let vertexId: VertexId = triangles[clusterId * 128 * 3 + vertexIndex];
     let vertex: Vertex = vertecies[vertexId];
     var position: vec3f = vertex.position;
     var out: VertexShaderOut;
     out.clipspace = uniforms.viewProjection * vec4f(position, 1);
-    out.color = getColor(uniforms.viewMode, invokeId, clusterId);
+    out.color = getColor(uniforms.viewMode, vertexIndex, clusterId);
     out.position = position;
     return out;
 }

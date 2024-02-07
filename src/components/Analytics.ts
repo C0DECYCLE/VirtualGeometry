@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { AnalyticSamples, TasksLimit } from "../constants.js";
+import { AnalyticSamples, ClusterDrawLimit } from "../constants.js";
 import { DrawHandler } from "../handlers/DrawHandler.js";
 import { RollingAverage } from "../utilities/RollingAverage.js";
 import { warn } from "../utilities/logger.js";
@@ -16,11 +16,13 @@ export class Analytics {
     private readonly deltas: {
         frame: RollingAverage;
         cpu: RollingAverage;
+        gpuInstance: RollingAverage;
         gpuCluster: RollingAverage;
         gpuDraw: RollingAverage;
     };
     private readonly stats: Stats;
     private timings: Nullable<{
+        gpuInstance: GPUTiming;
         gpuCluster: GPUTiming;
         gpuDraw: GPUTiming;
     }>;
@@ -29,6 +31,7 @@ export class Analytics {
         this.deltas = {
             frame: new RollingAverage(AnalyticSamples),
             cpu: new RollingAverage(AnalyticSamples),
+            gpuInstance: new RollingAverage(AnalyticSamples),
             gpuCluster: new RollingAverage(AnalyticSamples),
             gpuDraw: new RollingAverage(AnalyticSamples),
         };
@@ -45,10 +48,16 @@ export class Analytics {
 
     public prepare(device: GPUDevice): void {
         this.timings = {
+            gpuInstance: new GPUTiming(device),
             gpuCluster: new GPUTiming(device),
             gpuDraw: new GPUTiming(device),
         };
         this.stats.show();
+    }
+
+    public getInstancePassTimestamps(): GPUComputePassTimestampWrites {
+        assert(this.timings);
+        return this.timings.gpuInstance.timestampWrites;
     }
 
     public getClusterPassTimestamps(): GPUComputePassTimestampWrites {
@@ -67,6 +76,7 @@ export class Analytics {
 
     public resolve(encoder: GPUCommandEncoder): void {
         assert(this.timings);
+        this.timings.gpuInstance.resolve(encoder);
         this.timings.gpuCluster.resolve(encoder);
         this.timings.gpuDraw.resolve(encoder);
     }
@@ -83,14 +93,20 @@ export class Analytics {
         stats.set("frame delta", now - stats.get("frame delta")!);
         deltas.frame.sample(stats.get("frame delta")!);
 
-        const gpuSum: float = deltas.gpuCluster.get() + deltas.gpuDraw.get();
+        const gpuSum: float =
+            deltas.gpuInstance.get() +
+            deltas.gpuCluster.get() +
+            deltas.gpuDraw.get();
+        this.timings.gpuInstance.readback((ms: float) =>
+            deltas.gpuInstance.sample(ms),
+        );
         this.timings.gpuCluster.readback((ms: float) =>
             deltas.gpuCluster.sample(ms),
         );
         this.timings.gpuDraw.readback((ms: float) => deltas.gpuDraw.sample(ms));
 
         draws.readback((instanceCount: int) => {
-            if (instanceCount > TasksLimit) {
+            if (instanceCount > ClusterDrawLimit) {
                 warn("DrawHandler: Tried to draw more clusters than limit.");
             }
             stats.set("clusters post", instanceCount * 1);
@@ -105,7 +121,7 @@ export class Analytics {
             <br>
             <b>gpu rate: ${deltaToFps(gpuSum)} fps</b><br>
             gpu delta: ${dotit(gpuSum.toFixed(2))} ms<br>
-            | instance: ? ms<br>
+            | instance: ${dotit(deltas.gpuInstance.get().toFixed(2))} ms<br>
             | cluster: ${dotit(deltas.gpuCluster.get().toFixed(2))} ms<br>
             | draw: ${dotit(deltas.gpuDraw.get().toFixed(2))} ms<br>
             <br>

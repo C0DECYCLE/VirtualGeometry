@@ -117,10 +117,9 @@
     //difficulty later findingcut of the dag
 
     //CORE:
-    //get working with all models -> solution: allowMikroCracks flag to allow collapse of smallest border edges
-    //flickering problem
-    //
-    // make instance compute, turn cluster compute into persistant thread queue, first push all via instance compute, later push only top of acceleration tree
+    // X get working with all models -> solution: allowMikroCracks flag to allow collapse of smallest border edges
+    // X flickering problem
+    //make instance compute, turn cluster compute into persistant thread queue, first push all via instance compute, later push only top of acceleration tree
     //implement acceleraltio tree and compact and finish geometry pipeline
     //in the end make virtual geometry exportable and loadable
 
@@ -136,6 +135,6 @@
     //cluster frustum culling
     //instance frustum culling
 
-    //freeze mode for debug
+    // X freeze mode for debug
     //per instance shading mode
     //debug info stats
