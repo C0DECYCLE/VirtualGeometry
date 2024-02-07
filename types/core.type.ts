@@ -4,16 +4,18 @@
  */
 
 import { Vec3 } from "./utilities/Vec3";
-import { float, int } from "./utils.type";
+import { int } from "./utils.type";
 
 export type GeometryId = int;
 
 export type GeometryKey = string;
 
-export type GeometryData = {
-    positions: [float, float, float][];
-    cells: [VertexId, VertexId, VertexId][];
+/*
+export type GeometryExport = {
+    vertices: VertexExport[];
+    clusters: ClusterExport[];
 };
+*/
 
 export type ClusterId = int;
 
@@ -28,11 +30,20 @@ export type ClusterBounds = {
     max: Vec3;
 };
 
+/*
+export type ClusterExport = {
+    triangles: TriangleExport[];
+    clusters: ClusterExport[];
+};
+*/
+
 export type TriangleId = int;
 
 export type EdgeIdentifier = string; // VertexId-VertexId // first lower !
 
 export type VertexId = int;
+
+//export type VertexExport = [float, float, float];
 
 export type EntityIndex = int;
 

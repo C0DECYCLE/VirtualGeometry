@@ -118,8 +118,14 @@
 
     //CORE:
     //get working with all models -> solution: allowMikroCracks flag to allow collapse of smallest border edges
-    //only based on object distance not cluster distance!
+    //flickering problem
+    //
+    // make instance compute, turn cluster compute into persistant thread queue, first push all via instance compute, later push only top of acceleration tree
+    //implement acceleraltio tree and compact and finish geometry pipeline
+    //in the end make virtual geometry exportable and loadable
+
     //error random - bad?
+    //only based on object distance not cluster distance!
     //multiple instances
 
     //OPTIMIZE:
@@ -132,12 +138,4 @@
 
     //freeze mode for debug
     //per instance shading mode
-    //debug info stats:
-    // -> instances pre cull
-    // -> instances post cull
-    // -> clusters pre cull
-    // -> clusters post cull
-    // -> triangles pre cull
-    // -> triangles post cull
-    // -> vertices pre cull
-    // -> vertices post cull
+    //debug info stats

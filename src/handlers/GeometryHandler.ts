@@ -42,6 +42,7 @@ export class GeometryHandler {
             await this.loadText(path),
             true,
         );
+        //log(await this.existText(path + ".virtual"));
         this.geometries.push(new Geometry(this.count, key, parse));
     }
 
@@ -50,6 +51,14 @@ export class GeometryHandler {
             async (response: Response) => await response.text(),
         );
     }
+
+    /*
+    private async existText(path: string): Promise<boolean> {
+        return await fetch(path, { method: "HEAD" }).then(
+            async (response: Response) => response.ok,
+        );
+    }
+    */
 
     public prepare(device: GPUDevice): void {
         this.prepareBuffers(device);
@@ -87,31 +96,25 @@ export class GeometryHandler {
         const arrayBuffer: ArrayBuffer = new ArrayBuffer(
             this.count.clusters * ClusterLayout * Bytes4,
         );
-        const uIntData: Uint32Array = new Uint32Array(arrayBuffer);
         const floatData: Float32Array = new Float32Array(arrayBuffer);
+        const uIntData: Uint32Array = new Uint32Array(arrayBuffer);
         const clusters: Map<Cluster, ClusterId> = new Map<Cluster, ClusterId>();
         for (let i: int = 0; i < this.geometries.length; i++) {
             const geometry: Geometry = this.geometries[i];
             for (let j: int = 0; j < geometry.clusters.length; j++) {
                 const id: ClusterId = clusters.size;
                 const cluster: Cluster = geometry.clusters[j];
-                cluster.bounds.min.store(floatData, id * ClusterLayout + 0);
-                cluster.bounds.max.store(floatData, id * ClusterLayout + 4);
-                floatData[id * ClusterLayout + 13] = cluster.error;
+                floatData[id * ClusterLayout + 0] = cluster.error;
                 clusters.set(cluster, id);
             }
         }
         clusters.forEach((id: ClusterId, cluster: Cluster) => {
             assert(cluster.parents.length <= 2);
-            for (let i: int = 0; i < cluster.parents.length; i++) {
-                const parent: Cluster = cluster.parents[i];
-                uIntData[id * ClusterLayout + 7 + i] =
-                    clusters.get(parent)! + 1;
-            }
             assert(cluster.children.length <= 4);
-            for (let i: int = 0; i < cluster.children.length; i++) {
-                const child: Cluster = cluster.children[i];
-                uIntData[id * ClusterLayout + 9 + i] = clusters.get(child)! + 1;
+            uIntData[id * ClusterLayout + 2] = cluster.parents.length;
+            uIntData[id * ClusterLayout + 3] = cluster.children.length;
+            if (cluster.parents.length > 0) {
+                floatData[id * ClusterLayout + 1] = cluster.parents[0].error;
             }
         });
         return arrayBuffer;

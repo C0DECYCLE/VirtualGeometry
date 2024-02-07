@@ -40,6 +40,8 @@ export class Geometry {
         const leaves: Cluster[] = clusterize(count, triangles);
         this.clusters = this.buildHirarchy(count, leaves);
 
+        //this.export();
+
         //
         log(
             this.key,
@@ -63,21 +65,9 @@ export class Geometry {
             const next: Cluster[] = [];
             for (let i: int = 0; i < groups.length; i++) {
                 const children: Cluster[] = groups[i];
-                let maxChildrenError: float = 0;
-                for (let j: int = 0; j < children.length; j++) {
-                    maxChildrenError = Math.max(
-                        maxChildrenError,
-                        children[j].error,
-                    );
-                }
                 const { triangles, edges } = merge(count, children);
                 simplify(count, this.vertices, triangles, edges);
                 const parents: Cluster[] = clusterize(count, triangles);
-                const parentError: float =
-                    maxChildrenError + Math.random() * 0.9 + 0.1;
-                for (let j: int = 0; j < parents.length; j++) {
-                    parents[j].error = parentError;
-                }
                 this.setChildrenParents(children, parents);
                 next.push(...parents);
             }
@@ -88,15 +78,25 @@ export class Geometry {
     }
 
     private setChildrenParents(children: Cluster[], parents: Cluster[]): void {
+        let maxChildrenError: float = 0;
         for (let i: int = 0; i < children.length; i++) {
             const child: Cluster = children[i];
+            maxChildrenError = Math.max(maxChildrenError, child.error);
             assert(child.parents.length === 0);
             child.parents.push(...parents);
         }
+        const parentError: float = maxChildrenError + Math.random() * 0.2 + 0.1;
         for (let i: int = 0; i < parents.length; i++) {
             const parent: Cluster = parents[i];
+            parent.error = parentError;
             assert(parent.children.length === 0);
             parent.children.push(...children);
         }
     }
+
+    /*
+    private export(): void {
+        const result: 
+    }
+    */
 }

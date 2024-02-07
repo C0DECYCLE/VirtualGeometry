@@ -3,9 +3,10 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { AnalyticSamples } from "../constants.js";
+import { AnalyticSamples, TasksLimit } from "../constants.js";
 import { DrawHandler } from "../handlers/DrawHandler.js";
 import { RollingAverage } from "../utilities/RollingAverage.js";
+import { warn } from "../utilities/logger.js";
 import { assert, dotit } from "../utilities/utils.js";
 import { Nullable, float, int } from "../utils.type.js";
 import { GPUTiming } from "./GPUTiming.js";
@@ -88,9 +89,12 @@ export class Analytics {
         );
         this.timings.gpuDraw.readback((ms: float) => deltas.gpuDraw.sample(ms));
 
-        draws.readback((instanceCount: int) =>
-            stats.set("clusters post", instanceCount * 1),
-        );
+        draws.readback((instanceCount: int) => {
+            if (instanceCount > TasksLimit) {
+                warn("DrawHandler: Tried to draw more clusters than limit.");
+            }
+            stats.set("clusters post", instanceCount * 1);
+        });
 
         stats.update(`
             <b>frame rate: ${deltaToFps(deltas.frame.get())} fps</b><br>

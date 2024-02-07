@@ -18,9 +18,9 @@ export class Cluster {
     public readonly triangles: Triangle[];
     public readonly bounds: ClusterBounds;
     public readonly border: Set<VertexId>;
+    public error: float;
     public readonly parents: Cluster[];
     public readonly children: Cluster[];
-    public error: float;
 
     public constructor(count: Count, triangles: Triangle[]) {
         assert(triangles.length <= ClusterTrianglesLimit);
@@ -28,9 +28,9 @@ export class Cluster {
         this.triangles = triangles;
         this.bounds = this.computeBounds();
         this.border = this.computeBorder();
+        this.error = 0;
         this.parents = [];
         this.children = [];
-        this.error = 0;
     }
 
     private computeBounds(): ClusterBounds {

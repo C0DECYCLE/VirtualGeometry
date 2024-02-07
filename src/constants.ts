@@ -20,9 +20,9 @@ export const ClusterGroupingLimit: int = 4;
 
 export const AllowMicroCracks: boolean = true;
 
-export const ClusterLayout: int = 3 + 1 + 3 + 2 + 4 + 1 + 2;
+export const ClusterLayout: int = 1 + 1 + 1 + 1;
 
-export const TasksLimit: int = 100;
+export const TasksLimit: int = 1000;
 
 export const VertexStride: int = Vec3Layout;
 

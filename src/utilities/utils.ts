@@ -82,6 +82,6 @@ export function clear<T>(value: T[]): T[] {
 
 export function assert(condition: any, msg?: string): asserts condition {
     if (!condition) {
-        throw new Error(msg);
+        throw new Error(msg || "Assertion");
     }
 }

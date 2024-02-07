@@ -12,18 +12,17 @@ struct Uniforms {
 };
 
 struct Cluster {
-    min: vec3f,
-    max: vec3f,
-    parents: array<ClusterId, 2>,
-    children: array<ClusterId, 4>,
-    error: f32
+    error: f32,
+    parentError: f32,
+    parentsLength: u32,
+    childrenLength: u32
 };
 
 struct Indirect {
-    invokeCount: u32,
-    taskCount: atomic<u32>,
-    firstInvoke: u32,
-    firstTask: u32
+    vertexCount: u32,
+    instanceCount: atomic<u32>,
+    firstVertex: u32,
+    firstInstance: u32
 };
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -32,37 +31,9 @@ struct Indirect {
 @group(0) @binding(3) var<storage, read_write> indirect: Indirect;
 
 @compute @workgroup_size(1, 1, 1) fn cs(@builtin(global_invocation_id) id: vec3<u32>) {
-    let threshold: f32 = length(uniforms.cameraPosition) * 0.1;
-
+    let threshold: f32 = length(uniforms.cameraPosition) * 0.05; // (pow(length(camera-objectposition)) - objectradius) * 0.05 //compute in instance compute shader and pass here
     let cluster: Cluster = clusters[id.x];
-    let clusterError: f32 = cluster.error;
-
-    var childrenLength: u32 = 0;
-    if (cluster.children[0] != 0) {
-        childrenLength += 1;
-    } 
-    if (cluster.children[1] != 0) {
-        childrenLength += 1;
-    } 
-    if (cluster.children[2] != 0) {
-        childrenLength += 1;
-    } 
-    if (cluster.children[3] != 0) {
-        childrenLength += 1;
-    } 
-
-    var parentsLength: u32 = 0;
-    var parentError: f32 = 0;
-    if (cluster.parents[0] != 0) {
-        parentError = clusters[cluster.parents[0] - 1].error;
-        parentsLength += 1;
-    } 
-    if (cluster.parents[1] != 0) {
-        parentError = clusters[cluster.parents[1] - 1].error;
-        parentsLength += 1;
-    } 
-
-    if ((parentError > threshold || parentsLength == 0) && (clusterError <= threshold || childrenLength == 0)) {
-        tasks[atomicAdd(&indirect.taskCount, 1)] = id.x;
+    if ((cluster.parentsLength == 0 || cluster.parentError > threshold) && (cluster.childrenLength == 0 || cluster.error <= threshold)) {
+        tasks[atomicAdd(&indirect.instanceCount, 1)] = id.x;
     }
 }
