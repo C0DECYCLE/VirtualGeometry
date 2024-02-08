@@ -6,7 +6,7 @@
 import { EdgeIdentifier } from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
-import { int } from "../utils.type.js";
+import { float, int } from "../utils.type.js";
 import { Count } from "./Count.js";
 import { Edge } from "./Edge.js";
 import { Vertex } from "./Vertex.js";
@@ -90,5 +90,15 @@ export class Triangle {
             .clone()
             .sub(this.vertices[0].position);
         return a.cross(b).normalize();
+    }
+
+    public getArea(): float {
+        const a: Vec3 = this.vertices[1].position
+            .clone()
+            .sub(this.vertices[0].position);
+        const b: Vec3 = this.vertices[2].position
+            .clone()
+            .sub(this.vertices[0].position);
+        return a.cross(b).length() * 0.5;
     }
 }

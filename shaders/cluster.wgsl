@@ -41,11 +41,9 @@ struct Queue {
 @group(0) @binding(4) var<storage, read_write> clusterDraw: array<ClusterId>;
 
 @compute @workgroup_size(1, 1, 1) fn cs(@builtin(global_invocation_id) globalInvocationId: vec3<u32>) {
-    let threshold: f32 = length(uniforms.cameraPosition) * 0.05; // (pow(length(camera-objectposition)) - objectradius) * 0.05 //compute in instance compute shader and pass here
+    let threshold: f32 = (length(uniforms.cameraPosition) - 1) * 0.1; // (length(camera-objectposition) - objectradius) * 0... //compute in instance compute shader and pass here
     
-    //var safetyExitCounter: u32 = 0;
-    while(true/*safetyExitCounter < 1000*/) {
-        //safetyExitCounter += 1;
+    while(true) {
 
         let length: u32 = atomicLoad(&queue.length);
         if (length == 0) {
@@ -54,11 +52,18 @@ struct Queue {
         if (!atomicCompareExchangeWeak(&queue.length, length, length - 1).exchanged) {
             continue;
         }
+
         let id: ClusterId = queue.queue[length - 1];
         let cluster: Cluster = clusters[id];
+
         if ((cluster.parentError == 0 || cluster.parentError > threshold) && 
             (cluster.children.length == 0 || cluster.error <= threshold)) {
             clusterDraw[atomicAdd(&indirect.instanceCount, 1)] = id;
+            continue;
+        }
+
+        for (var i: u32 = 0; i < cluster.children.length; i++) {
+            queue.queue[atomicAdd(&queue.length, 1)] = cluster.children.ids[i];
         }
     }
 }

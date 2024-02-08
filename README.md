@@ -121,23 +121,23 @@
     // X flickering problem
     // X make instance compute, turn cluster compute into persistant thread queue,
     // X first push all via instance compute,
-    //later push only top of acceleration tree
-    //implement acceleraltion tree and compact and finish geometry pipeline
+    // X later push only top of acceleration tree
+    // X implement acceleraltion tree
     //multiple instances
+    //compact and finish geometry pipeline
     //in the end make virtual geometry exportable and loadable
 
     //OPTIMIZE:
-    //only based on object distance not cluster distance!
-    //error random - bad? yes random is meaning less which ones in cut is random but we want in cut based on size, so error from area of cluster!!!
+    // X error random - bad? yes random is meaning less which ones in cut is random but we want in cut based on size, so error from area of cluster!!!
+    // X evaluate each cluster currently
+    // X -> should do tree based not evaluate children with persistant threads and atomic queue
+    // X -> tree based on parenterror? for deciding to traverse children?
     //memory leak because of keeping unused stuff
     //improve code, refactor reduce memory and redudant stuff (children/parentlength into cluster/group memory)
-    //evaluate each cluster currently
-    // -> should do tree based not evaluate children with persistant threads and atomic queue
-    // -> tree based on parenterror? for deciding to traverse children?
     //cluster frustum culling
     //instance frustum culling
 
     // X freeze mode for debug
-    //detect if queue size is too small
+    // X detect if queue size is too small -> visible by holes
     //per instance shading mode
     //debug info stats

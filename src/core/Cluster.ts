@@ -29,7 +29,7 @@ export class Cluster {
         this.triangles = triangles;
         this.bounds = this.computeBounds();
         this.border = this.computeBorder();
-        this.error = 0;
+        this.error = this.getArea();
         this.parents = null;
         this.children = null;
         this.treeChildren = null;
@@ -75,5 +75,13 @@ export class Cluster {
 
     public getCenter(): Vec3 {
         return this.bounds.min.clone().add(this.bounds.max).scale(0.5);
+    }
+
+    public getArea(): float {
+        let sum: float = 0;
+        for (let i: int = 0; i < this.triangles.length; i++) {
+            sum += this.triangles[i].getArea();
+        }
+        return sum;
     }
 }

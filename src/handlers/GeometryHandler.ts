@@ -4,12 +4,7 @@
  */
 
 import { OBJParseResult, OBJParser } from "../components/OBJParser.js";
-import {
-    Bytes4,
-    ClusterGroupingLimit,
-    ClusterLayout,
-    VertexStride,
-} from "../constants.js";
+import { Bytes4, ClusterLayout, VertexStride } from "../constants.js";
 import { ClusterId, GeometryKey } from "../core.type.js";
 import { Nullable, int } from "../utils.type.js";
 import { Cluster } from "../core/Cluster.js";
@@ -97,11 +92,14 @@ export class GeometryHandler {
             for (let j: int = 0; j < geometry.clusters.length; j++) {
                 const id: ClusterId = clusters.size;
                 const cluster: Cluster = geometry.clusters[j];
-                floatData[id * ClusterLayout + 0] = cluster.error;
                 clusters.set(cluster, id);
             }
         }
         clusters.forEach((id: ClusterId, cluster: Cluster) => {
+            floatData[id * ClusterLayout + 0] = cluster.error;
+            if (cluster.parents) {
+                floatData[id * ClusterLayout + 1] = cluster.parents[0].error;
+            }
             const treeChildrenLength: int = cluster.treeChildren
                 ? cluster.treeChildren.length
                 : 0;
@@ -109,11 +107,8 @@ export class GeometryHandler {
             uIntData[id * ClusterLayout + 2] = treeChildrenLength;
             for (let i: int = 0; i < treeChildrenLength; i++) {
                 uIntData[id * ClusterLayout + 3 + i] = clusters.get(
-                    cluster.treeChildren![0],
+                    cluster.treeChildren![i],
                 )!;
-            }
-            if (cluster.parents) {
-                floatData[id * ClusterLayout + 1] = cluster.parents[0].error;
             }
         });
         return arrayBuffer;

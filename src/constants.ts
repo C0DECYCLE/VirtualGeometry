@@ -27,7 +27,7 @@ export const EntityLimit: int = 100;
 
 export const PersistentThreads: int = 256;
 
-export const QueueLimit: int = EntityLimit * 1000;
+export const QueueLimit: int = EntityLimit * 10;
 
 export const ClusterDrawLimit: int = 1000;
 

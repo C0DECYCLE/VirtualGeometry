@@ -75,35 +75,23 @@ export class Geometry {
             previous = next;
         }
         this.extractTree(previous[0]);
-
-        let treeNodes: int = 0;
-        const nodeSet: Set<Cluster> = new Set<Cluster>();
-        function walkTree(node: Cluster): void {
-            treeNodes++;
-            nodeSet.add(node);
-            if (!node.treeChildren) {
-                return;
-            }
-            assert(node.treeChildren.length <= 2);
-            for (let i: int = 0; i < node.treeChildren.length; i++) {
-                walkTree(node.treeChildren[i]);
-            }
-        }
-        walkTree(previous[0]);
-        log(treeNodes, nodeSet);
-
         return hirarchy;
     }
 
     private setChildrenParents(children: Cluster[], parents: Cluster[]): void {
-        let maxChildrenError: float = 0;
+        let maxChildError: float = 0;
         for (let i: int = 0; i < children.length; i++) {
             const child: Cluster = children[i];
-            maxChildrenError = Math.max(maxChildrenError, child.error);
+            maxChildError = Math.max(maxChildError, child.error);
             assert(!child.parents);
             child.parents = parents;
         }
-        const parentError: float = maxChildrenError + Math.random() * 0.2 + 0.1;
+        let maxParentError: float = 0;
+        for (let i: int = 0; i < parents.length; i++) {
+            const parent: Cluster = parents[i];
+            maxParentError = Math.max(maxParentError, parent.error);
+        }
+        const parentError: float = maxChildError + maxParentError;
         const treeChildren: Cluster[] = [...children];
         for (let i: int = 0; i < parents.length; i++) {
             const parent: Cluster = parents[i];
