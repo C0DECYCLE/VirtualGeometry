@@ -7,7 +7,7 @@ import { assert } from "../utilities/utils.js";
 import { EmptyCallback, Nullable, float } from "../utils.type.js";
 import { Camera } from "../components/Camera.js";
 import { Controller } from "../components/Controller.js";
-import { WebGPURequirements } from "../constants.js";
+import { PersistentThreads, WebGPURequirements } from "../constants.js";
 import { GeometryHandler } from "../handlers/GeometryHandler.js";
 import { Analytics } from "../components/Analytics.js";
 import { UniformHandler } from "../handlers/UniformHandler.js";
@@ -206,10 +206,9 @@ export class Renderer {
             label: "command-encoder",
         } as GPUObjectDescriptorBase);
         if (!this.isFrozen) {
-            this.handlers.instance.setExecute(1);
-            this.handlers.cluster.setExecute(
-                this.handlers.geometry.count.clusters,
-            );
+            this.handlers.instance.setExecute(1); //one for each entity
+            this.handlers.instance.resetQueue();
+            this.handlers.cluster.setExecute(PersistentThreads);
             this.handlers.draw.setExecute(0);
             this.handlers.instance.execute(encoder);
             this.handlers.cluster.execute(encoder);

@@ -7,7 +7,7 @@ import { ClusterTrianglesLimit } from "../constants.js";
 import { ClusterBounds, EdgeIdentifier, VertexId } from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
-import { float, int } from "../utils.type.js";
+import { Nullable, float, int } from "../utils.type.js";
 import { Count } from "./Count.js";
 import { Edge } from "./Edge.js";
 import { GeometryHelper } from "./GeometryHelper.js";
@@ -19,8 +19,9 @@ export class Cluster {
     public readonly bounds: ClusterBounds;
     public readonly border: Set<VertexId>;
     public error: float;
-    public readonly parents: Cluster[];
-    public readonly children: Cluster[];
+    public parents: Nullable<Cluster[]>;
+    public children: Nullable<Cluster[]>;
+    public treeChildren: Nullable<Cluster[]>;
 
     public constructor(count: Count, triangles: Triangle[]) {
         assert(triangles.length <= ClusterTrianglesLimit);
@@ -29,8 +30,9 @@ export class Cluster {
         this.bounds = this.computeBounds();
         this.border = this.computeBorder();
         this.error = 0;
-        this.parents = [];
-        this.children = [];
+        this.parents = null;
+        this.children = null;
+        this.treeChildren = null;
     }
 
     private computeBounds(): ClusterBounds {

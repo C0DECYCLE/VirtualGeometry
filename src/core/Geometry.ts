@@ -74,6 +74,24 @@ export class Geometry {
             hirarchy.push(...next);
             previous = next;
         }
+        this.extractTree(previous[0]);
+
+        let treeNodes: int = 0;
+        const nodeSet: Set<Cluster> = new Set<Cluster>();
+        function walkTree(node: Cluster): void {
+            treeNodes++;
+            nodeSet.add(node);
+            if (!node.treeChildren) {
+                return;
+            }
+            assert(node.treeChildren.length <= 2);
+            for (let i: int = 0; i < node.treeChildren.length; i++) {
+                walkTree(node.treeChildren[i]);
+            }
+        }
+        walkTree(previous[0]);
+        log(treeNodes, nodeSet);
+
         return hirarchy;
     }
 
@@ -82,15 +100,31 @@ export class Geometry {
         for (let i: int = 0; i < children.length; i++) {
             const child: Cluster = children[i];
             maxChildrenError = Math.max(maxChildrenError, child.error);
-            assert(child.parents.length === 0);
-            child.parents.push(...parents);
+            assert(!child.parents);
+            child.parents = parents;
         }
         const parentError: float = maxChildrenError + Math.random() * 0.2 + 0.1;
+        const treeChildren: Cluster[] = [...children];
         for (let i: int = 0; i < parents.length; i++) {
             const parent: Cluster = parents[i];
             parent.error = parentError;
-            assert(parent.children.length === 0);
-            parent.children.push(...children);
+            assert(!parent.children && !parent.treeChildren);
+            parent.children = children;
+            parent.treeChildren = treeChildren;
+        }
+    }
+
+    private extractTree(cluster: Cluster): void {
+        if (!cluster.children) {
+            return;
+        }
+        assert(cluster.treeChildren);
+        const target: int = Math.min(cluster.children.length, 2);
+        if (cluster.treeChildren.length !== target) {
+            cluster.treeChildren = cluster.treeChildren.splice(0, target);
+        }
+        for (let i: int = 0; i < cluster.treeChildren.length; i++) {
+            this.extractTree(cluster.treeChildren[i]);
         }
     }
 

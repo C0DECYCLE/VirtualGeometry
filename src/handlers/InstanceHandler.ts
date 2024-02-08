@@ -30,7 +30,7 @@ export class InstanceHandler {
         assert(device);
         this.queueBuffer = device.createBuffer({
             label: "queue-buffer",
-            size: QueueLimit * Bytes4,
+            size: (QueueLimit + 1) * Bytes4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         } as GPUBufferDescriptor);
         this.indirectBuffer = this.createIndirectBuffer(device);
@@ -57,6 +57,18 @@ export class InstanceHandler {
             this.indirectBuffer,
             0,
             this.indirectData,
+            0,
+            1,
+        );
+    }
+
+    public resetQueue(): void {
+        const device: Nullable<GPUDevice> = this.renderer.device;
+        assert(device && this.queueBuffer);
+        device.queue.writeBuffer(
+            this.queueBuffer,
+            0,
+            new Uint32Array([0]),
             0,
             1,
         );

@@ -11,11 +11,15 @@ struct Uniforms {
     cameraPosition: vec3f,
 };
 
+struct ClusterChildren {
+    length: u32,
+    ids: array<ClusterId, 2>
+}
+
 struct Cluster {
     error: f32,
     parentError: f32,
-    parentsLength: u32,
-    childrenLength: u32
+    children: ClusterChildren
 };
 
 struct Indirect {
@@ -25,15 +29,36 @@ struct Indirect {
     firstInstance: u32
 };
 
-@group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(0) @binding(1) var<storage, read> clusters: array<Cluster>;
-@group(0) @binding(2) var<storage, read_write> clusterDraw: array<ClusterId>;
-@group(0) @binding(3) var<storage, read_write> indirect: Indirect;
+struct Queue {
+    length: atomic<u32>,
+    queue: array<ClusterId>,
+};
 
-@compute @workgroup_size(1, 1, 1) fn cs(@builtin(global_invocation_id) id: vec3<u32>) {
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
+@group(0) @binding(1) var<storage, read_write> queue: Queue;
+@group(0) @binding(2) var<storage, read> clusters: array<Cluster>;
+@group(0) @binding(3) var<storage, read_write> indirect: Indirect;
+@group(0) @binding(4) var<storage, read_write> clusterDraw: array<ClusterId>;
+
+@compute @workgroup_size(1, 1, 1) fn cs(@builtin(global_invocation_id) globalInvocationId: vec3<u32>) {
     let threshold: f32 = length(uniforms.cameraPosition) * 0.05; // (pow(length(camera-objectposition)) - objectradius) * 0.05 //compute in instance compute shader and pass here
-    let cluster: Cluster = clusters[id.x];
-    if ((cluster.parentsLength == 0 || cluster.parentError > threshold) && (cluster.childrenLength == 0 || cluster.error <= threshold)) {
-        clusterDraw[atomicAdd(&indirect.instanceCount, 1)] = id.x;
+    
+    //var safetyExitCounter: u32 = 0;
+    while(true/*safetyExitCounter < 1000*/) {
+        //safetyExitCounter += 1;
+
+        let length: u32 = atomicLoad(&queue.length);
+        if (length == 0) {
+            break;
+        }
+        if (!atomicCompareExchangeWeak(&queue.length, length, length - 1).exchanged) {
+            continue;
+        }
+        let id: ClusterId = queue.queue[length - 1];
+        let cluster: Cluster = clusters[id];
+        if ((cluster.parentError == 0 || cluster.parentError > threshold) && 
+            (cluster.children.length == 0 || cluster.error <= threshold)) {
+            clusterDraw[atomicAdd(&indirect.instanceCount, 1)] = id;
+        }
     }
 }

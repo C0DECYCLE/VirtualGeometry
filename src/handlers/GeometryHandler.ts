@@ -4,7 +4,12 @@
  */
 
 import { OBJParseResult, OBJParser } from "../components/OBJParser.js";
-import { Bytes4, ClusterLayout, VertexStride } from "../constants.js";
+import {
+    Bytes4,
+    ClusterGroupingLimit,
+    ClusterLayout,
+    VertexStride,
+} from "../constants.js";
 import { ClusterId, GeometryKey } from "../core.type.js";
 import { Nullable, int } from "../utils.type.js";
 import { Cluster } from "../core/Cluster.js";
@@ -97,11 +102,17 @@ export class GeometryHandler {
             }
         }
         clusters.forEach((id: ClusterId, cluster: Cluster) => {
-            assert(cluster.parents.length <= 2);
-            assert(cluster.children.length <= 4);
-            uIntData[id * ClusterLayout + 2] = cluster.parents.length;
-            uIntData[id * ClusterLayout + 3] = cluster.children.length;
-            if (cluster.parents.length > 0) {
+            const treeChildrenLength: int = cluster.treeChildren
+                ? cluster.treeChildren.length
+                : 0;
+            assert(treeChildrenLength <= 2);
+            uIntData[id * ClusterLayout + 2] = treeChildrenLength;
+            for (let i: int = 0; i < treeChildrenLength; i++) {
+                uIntData[id * ClusterLayout + 3 + i] = clusters.get(
+                    cluster.treeChildren![0],
+                )!;
+            }
+            if (cluster.parents) {
                 floatData[id * ClusterLayout + 1] = cluster.parents[0].error;
             }
         });

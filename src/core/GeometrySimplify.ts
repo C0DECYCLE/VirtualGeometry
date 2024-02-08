@@ -3,7 +3,11 @@
  * Written by Noah Mattia Bussinger, February 2024
  */
 
-import { AllowMicroCracks } from "../constants.js";
+import {
+    AllowMicroCracks,
+    ClusterGroupingLimit,
+    ClusterTrianglesLimit,
+} from "../constants.js";
 import { EdgeIdentifier, VertexId } from "../core.type.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
@@ -21,9 +25,14 @@ export class GeometrySimplify {
         triangles: Triangle[],
         edges: Map<EdgeIdentifier, Edge>,
     ): void {
+        const triangleLimit: int = ClusterGroupingLimit * ClusterTrianglesLimit;
+        assert(triangles.length <= triangleLimit);
         const self = GeometrySimplify;
         const border: Set<VertexId> = self.FindBorderVertices(edges);
-        const reduce: int = Math.ceil(triangles.length / 2);
+        let reduce: int = Math.ceil(triangles.length / 2);
+        if (triangles.length > triangleLimit / 2) {
+            reduce = triangleLimit / 2;
+        }
         while (triangles.length > reduce) {
             if (!self.CollapseEdge(count, vertcies, triangles, edges, border)) {
                 throw new Error(

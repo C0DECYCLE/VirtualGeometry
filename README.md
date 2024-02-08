@@ -119,15 +119,17 @@
     //CORE:
     // X get working with all models -> solution: allowMikroCracks flag to allow collapse of smallest border edges
     // X flickering problem
-    //make instance compute, turn cluster compute into persistant thread queue, first push all via instance compute, later push only top of acceleration tree
-    //implement acceleraltio tree and compact and finish geometry pipeline
+    // X make instance compute, turn cluster compute into persistant thread queue,
+    // X first push all via instance compute,
+    //later push only top of acceleration tree
+    //implement acceleraltion tree and compact and finish geometry pipeline
+    //multiple instances
     //in the end make virtual geometry exportable and loadable
 
-    //error random - bad?
-    //only based on object distance not cluster distance!
-    //multiple instances
-
     //OPTIMIZE:
+    //only based on object distance not cluster distance!
+    //error random - bad? yes random is meaning less which ones in cut is random but we want in cut based on size, so error from area of cluster!!!
+    //memory leak because of keeping unused stuff
     //improve code, refactor reduce memory and redudant stuff (children/parentlength into cluster/group memory)
     //evaluate each cluster currently
     // -> should do tree based not evaluate children with persistant threads and atomic queue
@@ -136,5 +138,6 @@
     //instance frustum culling
 
     // X freeze mode for debug
+    //detect if queue size is too small
     //per instance shading mode
     //debug info stats
