@@ -3,26 +3,36 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { Bytes4, EntityLimit, EntityStride } from "../constants.js";
+import { Bytes4, EntityLimit, EntityLayout } from "../constants.js";
 import { assert } from "../utilities/utils.js";
 import { Nullable, int } from "../utils.type.js";
 import { Entity } from "../components/Entity.js";
 import { Renderer } from "../components/Renderer.js";
-import { BufferWrite, EntityChange, EntityIndex } from "../core.type.js";
+import {
+    BufferWrite,
+    ClusterId,
+    EntityChange,
+    EntityIndex,
+    GeometryKey,
+} from "../core.type.js";
 
 export class EntityHandler {
     private readonly renderer: Renderer;
 
     private readonly list: Entity[];
     private readonly changes: Map<EntityIndex, EntityChange>;
-    private readonly data: Float32Array;
+    public readonly arrayBuffer: ArrayBuffer;
+    public readonly uIntData: Uint32Array;
+    public readonly floatData: Float32Array;
     public buffer: Nullable<GPUBuffer>;
 
     public constructor(renderer: Renderer) {
         this.renderer = renderer;
         this.list = [];
         this.changes = new Map<EntityIndex, EntityChange>();
-        this.data = new Float32Array(EntityStride * EntityLimit);
+        this.arrayBuffer = new ArrayBuffer(EntityLayout * EntityLimit * Bytes4);
+        this.uIntData = new Uint32Array(this.arrayBuffer);
+        this.floatData = new Float32Array(this.arrayBuffer);
         this.buffer = null;
     }
 
@@ -31,7 +41,7 @@ export class EntityHandler {
         assert(device);
         this.buffer = device.createBuffer({
             label: "entity-buffer",
-            size: this.data.byteLength,
+            size: this.arrayBuffer.byteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         } as GPUBufferDescriptor);
     }
@@ -43,6 +53,14 @@ export class EntityHandler {
         let index: EntityIndex = this.list.push(entity) - 1;
         this.registerChange(index, "NEW");
         return index;
+    }
+
+    public getRootId(key: GeometryKey): ClusterId {
+        return this.renderer.handlers.geometry.getRootId(key);
+    }
+
+    public count(): int {
+        return this.list.length;
     }
 
     public registerChange(index: EntityIndex, change: EntityChange): void {
@@ -60,8 +78,9 @@ export class EntityHandler {
         const changes: EntityIndex[] = this.getSortedChanges();
         for (let i: int = 0; i < changes.length; i++) {
             let index: EntityIndex = changes[i];
-            let offset: int = index * EntityStride;
-            this.list[index].getPosition().store(this.data, offset);
+            let offset: int = index * EntityLayout;
+            this.list[index].getPosition().store(this.floatData, offset + 0);
+            this.uIntData[offset + 3] = this.list[index].getRootId();
             this.compactWrites(writes, offset);
         }
         this.executeWrites(writes);
@@ -79,8 +98,8 @@ export class EntityHandler {
             return this.pushWrite(writes, offset);
         }
         let previous: BufferWrite = writes[writes.length - 1];
-        if (offset - (previous.dataOffset + previous.size) === 0) {
-            previous.size += EntityStride;
+        if (offset * Bytes4 - (previous.dataOffset + previous.size) === 0) {
+            previous.size += EntityLayout * Bytes4;
             return;
         }
         this.pushWrite(writes, offset);
@@ -89,8 +108,8 @@ export class EntityHandler {
     private pushWrite(writes: BufferWrite[], offset: int): void {
         writes.push({
             bufferOffset: offset * Bytes4,
-            dataOffset: offset,
-            size: EntityStride,
+            dataOffset: offset * Bytes4,
+            size: EntityLayout * Bytes4,
         } as BufferWrite);
     }
 
@@ -102,7 +121,7 @@ export class EntityHandler {
             device.queue.writeBuffer(
                 this.buffer,
                 write.bufferOffset,
-                this.data,
+                this.arrayBuffer,
                 write.dataOffset,
                 write.size,
             );

@@ -46,6 +46,6 @@ export type bytes = int;
 
 export type BufferWrite = {
     bufferOffset: bytes;
-    dataOffset: int;
-    size: int;
+    dataOffset: bytes;
+    size: bytes;
 };

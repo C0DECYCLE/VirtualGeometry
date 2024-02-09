@@ -20,7 +20,7 @@ import { Grouping } from "./Grouping.js";
 import { Simplify } from "./Simplify.js";
 import { Triangle } from "./Triangle.js";
 import { Vertex } from "./Vertex.js";
-import { VertexStride } from "../constants.js";
+import { VertexLayout } from "../constants.js";
 import { Edge } from "./Edge.js";
 
 export class Virtual {
@@ -65,7 +65,7 @@ export class Virtual {
 
     private extractVertices(count: Count, parse: OBJParseResult): void {
         const stride: int = parse.vertices.length / parse.verticesCount;
-        assert(stride === VertexStride);
+        assert(stride === VertexLayout);
         for (let i: int = 0; i < parse.verticesCount; i++) {
             const vertex: Vertex = new Vertex(
                 count,
@@ -118,7 +118,8 @@ export class Virtual {
             this.clusters.push(...next);
             previous = next;
         }
-        this.extractTree(previous[0]);
+        const root: Cluster = this.clusters[this.clusters.length - 1];
+        this.extractTree(root);
     }
 
     private setChildrenParents(

@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { AnalyticSamples, ClusterDrawLimit } from "../constants.js";
+import { AnalyticSamples, DrawPairLimit } from "../constants.js";
 import { DrawHandler } from "../handlers/DrawHandler.js";
 import { RollingAverage } from "../utilities/RollingAverage.js";
 import { warn } from "../utilities/logger.js";
@@ -106,7 +106,7 @@ export class Analytics {
         this.timings.gpuDraw.readback((ms: float) => deltas.gpuDraw.sample(ms));
 
         draws.readback((instanceCount: int) => {
-            if (instanceCount > ClusterDrawLimit) {
+            if (instanceCount > DrawPairLimit) {
                 warn("DrawHandler: Tried to draw more clusters than limit.");
             }
             stats.set("clusters post", instanceCount * 1);

@@ -9,7 +9,7 @@ import {
     Bytes4,
     ClusterLayout,
     ClusterTrianglesLimit,
-    VertexStride,
+    VertexLayout,
 } from "../constants.js";
 import { ClusterId, Flushable, GeometryKey } from "../core.type.js";
 import { assert, clear } from "../utilities/utils.js";
@@ -41,14 +41,20 @@ export class Generator {
         clusters: GPUBuffer;
         triangles: GPUBuffer;
         vertices: GPUBuffer;
+        rootIds: Map<GeometryKey, ClusterId>;
     } {
-        const clusters: ArrayBuffer = Generator.CompactClusters();
+        const rootIds: Map<GeometryKey, ClusterId> = new Map<
+            GeometryKey,
+            ClusterId
+        >();
+        const clusters: ArrayBuffer = Generator.CompactClusters(rootIds);
         const { triangles, vertices } = Generator.CompactTrianglesVertices();
         Generator.Flush();
         return {
             clusters: Generator.Buffer("clusters", clusters, device),
             triangles: Generator.Buffer("triangles", triangles, device),
             vertices: Generator.Buffer("vertices", vertices, device),
+            rootIds,
         };
     }
 
@@ -72,17 +78,22 @@ export class Generator {
         return buffer;
     }
 
-    private static CompactClusters(): ArrayBuffer {
+    private static CompactClusters(
+        rootIds: Map<GeometryKey, ClusterId>,
+    ): ArrayBuffer {
         const bytes: int = Generator.Count.clusters * ClusterLayout * Bytes4;
         const arrayBuffer: ArrayBuffer = new ArrayBuffer(bytes);
         const floatData: Float32Array = new Float32Array(arrayBuffer);
         const uIntData: Uint32Array = new Uint32Array(arrayBuffer);
-        const clusters: Map<Cluster, ClusterId> = Generator.MapClusters();
+        const clusters: Map<Cluster, ClusterId> =
+            Generator.MapClusters(rootIds);
         Generator.StoreClusters(clusters, floatData, uIntData);
         return arrayBuffer;
     }
 
-    private static MapClusters(): Map<Cluster, ClusterId> {
+    private static MapClusters(
+        rootIds: Map<GeometryKey, ClusterId>,
+    ): Map<Cluster, ClusterId> {
         assert(Generator.Cache);
         const clusters: Map<Cluster, ClusterId> = new Map<Cluster, ClusterId>();
         for (let i: int = 0; i < Generator.Cache.length; i++) {
@@ -92,6 +103,10 @@ export class Generator {
                 const cluster: Cluster = virtual.clusters[j];
                 clusters.set(cluster, id);
             }
+            const root: Cluster = virtual.clusters[virtual.clusters.length - 1];
+            assert(!rootIds.has(virtual.key));
+            rootIds.set(virtual.key, clusters.get(root)!);
+            assert(rootIds.get(virtual.key) !== undefined);
         }
         return clusters;
     }
@@ -121,7 +136,7 @@ export class Generator {
         assert(Generator.Cache);
         const trianglesBytes: int =
             Generator.Count.clusters * ClusterTrianglesLimit * 3;
-        const verticesBytes: int = Generator.Count.vertices * VertexStride;
+        const verticesBytes: int = Generator.Count.vertices * VertexLayout;
         const triangles: Uint32Array = new Uint32Array(trianglesBytes);
         const vertices: Float32Array = new Float32Array(verticesBytes);
         let index: int = 0;
@@ -158,7 +173,7 @@ export class Generator {
     ): void {
         for (let j: int = 0; j < virtual.vertices.length; j++) {
             const vertex: Vertex = virtual.vertices[j];
-            vertex.position.store(vertices, vertex.id * VertexStride);
+            vertex.position.store(vertices, vertex.id * VertexLayout);
         }
     }
 }

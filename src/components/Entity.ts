@@ -3,7 +3,7 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { EntityIndex, GeometryKey } from "../core.type.js";
+import { ClusterId, EntityIndex, GeometryKey } from "../core.type.js";
 import { EntityHandler } from "../handlers/EntityHandler.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
@@ -40,5 +40,10 @@ export class Entity {
         assert(!this.handler);
         this.handler = handler;
         this.index = this.handler.append(this);
+    }
+
+    public getRootId(): ClusterId {
+        assert(this.handler);
+        return this.handler.getRootId(this.key);
     }
 }

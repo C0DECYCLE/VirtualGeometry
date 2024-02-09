@@ -3,7 +3,11 @@
  * Written by Noah Mattia Bussinger, February 2024
  */
 
-import { TextureFormats } from "../constants.js";
+import {
+    ClusterTrianglesLimit,
+    PersistentThreadsPerGroup,
+    TextureFormats,
+} from "../constants.js";
 import { assert } from "../utilities/utils.js";
 import { Nullable } from "../utils.type.js";
 import { Renderer } from "../components/Renderer.js";
@@ -58,6 +62,9 @@ export class PipelineHandler {
             compute: {
                 module: shader,
                 entryPoint: "cs",
+                constants: {
+                    WORKGROUP_SIZE: PersistentThreadsPerGroup,
+                } as Record<string, number>,
             } as GPUProgrammableStage,
         } as GPUComputePipelineDescriptor);
     }
@@ -74,6 +81,9 @@ export class PipelineHandler {
             vertex: {
                 module: shader,
                 entryPoint: "vs",
+                constants: {
+                    TRIANGLES_LIMIT: ClusterTrianglesLimit,
+                } as Record<string, number>,
             } as GPUVertexState,
             fragment: {
                 module: shader,

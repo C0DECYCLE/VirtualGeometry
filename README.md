@@ -123,7 +123,7 @@
     // X first push all via instance compute,
     // X later push only top of acceleration tree
     // X implement acceleraltion tree
-    //multiple entities / instances
+    // X multiple entities / instances
     //finish geometry pipeline
     //in the end make virtual geometry exportable and loadable
 
@@ -134,10 +134,12 @@
     // X -> tree based on parenterror? for deciding to traverse children?
     // X clean up, improve code, compact everything, refactor reduce memory and redudant stuff
     // X memory leak because of keeping unused stuff?
-    //cluster frustum culling
+    //threshold with object radius
+    //better persistant threads: (aka use more than 32 threads) better global queue or one queue per object with its workgroup? something!! make real queue not just list like now, maybe: https://gist.github.com/Shimmen/16aabbc19feb70a4d7b9399e508d20ab
     //instance frustum culling
+    //cluster frustum culling
 
     // X freeze mode for debug
     // X detect if queue size is too small -> visible by holes
-    //per instance shading mode
+    // X per instance shading mode
     //debug info stats

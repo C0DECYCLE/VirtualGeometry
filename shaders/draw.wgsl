@@ -3,8 +3,16 @@
  * Written by Noah Mattia Bussinger, February 2024
  */
 
+alias EntityIndex = u32;
+
 alias ClusterId = u32;
+
 alias VertexId = u32;
+
+struct DrawPair {
+    entity: EntityIndex,
+    cluster: ClusterId
+};
 
 struct Uniforms {
     viewProjection: mat4x4f,
@@ -16,30 +24,39 @@ struct Vertex {
     position: vec3f,
 };
 
+struct Entity {
+    position: vec3f,
+    root: ClusterId
+};
+
 struct VertexShaderOut {
     @builtin(position) clipspace: vec4f,
     @interpolate(flat) @location(0) color: vec3f,
     @location(1) position: vec3f
 };
 
+override TRIANGLES_LIMIT: u32;
+
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(0) @binding(1) var<storage, read> clusterDraw: array<ClusterId>;
-@group(0) @binding(2) var<storage, read> triangles: array<VertexId>;
-@group(0) @binding(3) var<storage, read> vertecies: array<Vertex>;
+@group(0) @binding(1) var<storage, read> drawPairs: array<DrawPair>;
+@group(0) @binding(2) var<storage, read> entities: array<Entity>;
+@group(0) @binding(3) var<storage, read> triangles: array<VertexId>;
+@group(0) @binding(4) var<storage, read> vertecies: array<Vertex>;
 
 @vertex fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> VertexShaderOut {
-    let clusterId: ClusterId = clusterDraw[instanceIndex];
-    let vertexId: VertexId = triangles[clusterId * 128 * 3 + vertexIndex];
+    let drawPair: DrawPair = drawPairs[instanceIndex];
+    let entity: Entity = entities[drawPair.entity];
+    let vertexId: VertexId = triangles[drawPair.cluster * TRIANGLES_LIMIT * 3 + vertexIndex];
     let vertex: Vertex = vertecies[vertexId];
-    var position: vec3f = vertex.position;
+    let position: vec3f = vertex.position + entity.position;
     var out: VertexShaderOut;
     out.clipspace = uniforms.viewProjection * vec4f(position, 1);
-    out.color = getColor(uniforms.viewMode, vertexIndex, clusterId);
+    out.color = getColor(uniforms.viewMode, vertexIndex, drawPair.cluster, drawPair.entity);
     out.position = position;
     return out;
 }
 
-fn getColor(mode: u32, triangle: u32, cluster: u32) -> vec3f {
+fn getColor(mode: u32, triangle: u32, cluster: u32, entity: u32) -> vec3f {
     if (mode == 0) {
         let x: f32 = f32(triangle) + 1;
         return fract(vec3f(x * 0.1443, x * 0.6841, x * 0.7323));
@@ -48,11 +65,15 @@ fn getColor(mode: u32, triangle: u32, cluster: u32) -> vec3f {
         let x: f32 = f32(cluster) + 1;
         return fract(vec3f(x * 0.1443, x * 0.6841, x * 0.7323));
     }
+    if (mode == 2) {
+        let x: f32 = f32(entity) + 1;
+        return fract(vec3f(x * 0.1443, x * 0.6841, x * 0.7323));
+    }
     return vec3f();
 }
 
 @fragment fn fs(in: VertexShaderOut) -> @location(0) vec4f {
-    if (uniforms.viewMode == 2) {
+    if (uniforms.viewMode == 3) {
         return vec4f(normalize(cross(dpdx(in.position), dpdy(in.position))) * 0.5 + 0.5, 1);
     }
     return vec4f(in.color, 1);

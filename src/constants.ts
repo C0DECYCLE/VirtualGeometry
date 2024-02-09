@@ -7,15 +7,15 @@ import { int } from "./utils.type.js";
 
 export const Bytes4: int = 4;
 
-export const Vec3Layout: int = 3 + 1;
+export const VertexLayout: int = 3 + 1;
 
-export const VertexStride: int = Vec3Layout;
-
-export const EntityStride: int = Vec3Layout;
+export const EntityLayout: int = 3 + 1;
 
 export const UniformsLayout: int = 4 * 4 + 1 + 3 + 3 + 1;
 
 export const ClusterLayout: int = 1 + 1 + 1 + 1 + 1;
+
+export const DrawPairLayout: int = 1 + 1;
 
 export const AllowMicroCracks: boolean = true;
 
@@ -25,11 +25,13 @@ export const ClusterGroupingLimit: int = 4; //dont change because of tree extrac
 
 export const EntityLimit: int = 100;
 
-export const PersistentThreads: int = 256;
+export const PersistentThreadGroups: int = 1;
 
-export const QueueLimit: int = EntityLimit * 10;
+export const PersistentThreadsPerGroup: int = 32;
 
-export const ClusterDrawLimit: int = 1000;
+export const QueueLimit: int = EntityLimit * 1_000;
+
+export const DrawPairLimit: int = 10_000;
 
 export const AnalyticSamples: int = 60;
 

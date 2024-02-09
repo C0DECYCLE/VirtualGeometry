@@ -12,6 +12,7 @@ import { PipelineHandler } from "./PipelineHandler.js";
 import { DrawHandler } from "./DrawHandler.js";
 import { ClusterHandler } from "./ClusterHandler.js";
 import { InstanceHandler } from "./InstanceHandler.js";
+import { EntityHandler } from "./EntityHandler.js";
 
 export class BindGroupHandler {
     private readonly renderer: Renderer;
@@ -36,15 +37,16 @@ export class BindGroupHandler {
     }
 
     private createInstanceBindGroup(device: GPUDevice): GPUBindGroup {
-        const uniforms: UniformHandler = this.renderer.handlers.uniform;
+        const entity: EntityHandler = this.renderer.handlers.entity;
         const instance: InstanceHandler = this.renderer.handlers.instance;
         const pipelines: PipelineHandler = this.renderer.handlers.pipeline;
-        assert(pipelines.instance && uniforms.buffer && instance.queueBuffer);
+        assert(pipelines.instance && instance.queueBuffer);
+        assert(entity.buffer);
         return device.createBindGroup({
             label: "instance-bindgroup",
             layout: pipelines.instance.getBindGroupLayout(0),
             entries: [
-                this.createBinding(0, uniforms.buffer),
+                this.createBinding(0, entity.buffer),
                 this.createBinding(1, instance.queueBuffer),
             ],
         } as GPUBindGroupDescriptor);
@@ -56,10 +58,11 @@ export class BindGroupHandler {
         const geometries: GeometryHandler = this.renderer.handlers.geometry;
         const draw: DrawHandler = this.renderer.handlers.draw;
         const cluster: ClusterHandler = this.renderer.handlers.cluster;
+        const entity: EntityHandler = this.renderer.handlers.entity;
         const pipelines: PipelineHandler = this.renderer.handlers.pipeline;
         assert(pipelines.cluster && draw.indirectBuffer && uniforms.buffer);
-        assert(geometries.clustersBuffer && cluster.clusterDrawBuffer);
-        assert(instance.queueBuffer);
+        assert(geometries.clustersBuffer && cluster.drawPairBuffer);
+        assert(instance.queueBuffer && entity.buffer);
         return device.createBindGroup({
             label: "cluster-bindgroup",
             layout: pipelines.cluster.getBindGroupLayout(0),
@@ -67,8 +70,9 @@ export class BindGroupHandler {
                 this.createBinding(0, uniforms.buffer),
                 this.createBinding(1, instance.queueBuffer),
                 this.createBinding(2, geometries.clustersBuffer),
-                this.createBinding(3, draw.indirectBuffer),
-                this.createBinding(4, cluster.clusterDrawBuffer),
+                this.createBinding(3, entity.buffer),
+                this.createBinding(4, draw.indirectBuffer),
+                this.createBinding(5, cluster.drawPairBuffer),
             ],
         } as GPUBindGroupDescriptor);
     }
@@ -76,18 +80,21 @@ export class BindGroupHandler {
     private createDrawBindGroup(device: GPUDevice): GPUBindGroup {
         const uniforms: UniformHandler = this.renderer.handlers.uniform;
         const geometries: GeometryHandler = this.renderer.handlers.geometry;
+        const entity: EntityHandler = this.renderer.handlers.entity;
         const cluster: ClusterHandler = this.renderer.handlers.cluster;
         const pipelines: PipelineHandler = this.renderer.handlers.pipeline;
-        assert(uniforms.buffer && pipelines.draw && cluster.clusterDrawBuffer);
+        assert(uniforms.buffer && pipelines.draw && cluster.drawPairBuffer);
         assert(geometries.trianglesBuffer && geometries.verticesBuffer);
+        assert(entity.buffer);
         return device.createBindGroup({
             label: "draw-bindgroup",
             layout: pipelines.draw.getBindGroupLayout(0),
             entries: [
                 this.createBinding(0, uniforms.buffer),
-                this.createBinding(1, cluster.clusterDrawBuffer),
-                this.createBinding(2, geometries.trianglesBuffer),
-                this.createBinding(3, geometries.verticesBuffer),
+                this.createBinding(1, cluster.drawPairBuffer),
+                this.createBinding(2, entity.buffer),
+                this.createBinding(3, geometries.trianglesBuffer),
+                this.createBinding(4, geometries.verticesBuffer),
             ],
         } as GPUBindGroupDescriptor);
     }

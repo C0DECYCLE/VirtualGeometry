@@ -8,7 +8,7 @@ import { Nullable, int } from "../utils.type.js";
 import { Renderer } from "../components/Renderer.js";
 import { BindGroupHandler } from "./BindGroupHandler.js";
 import { PipelineHandler } from "./PipelineHandler.js";
-import { Bytes4, QueueLimit } from "../constants.js";
+import { Bytes4, DrawPairLayout, QueueLimit } from "../constants.js";
 
 export class InstanceHandler {
     private readonly renderer: Renderer;
@@ -30,7 +30,7 @@ export class InstanceHandler {
         assert(device);
         this.queueBuffer = device.createBuffer({
             label: "queue-buffer",
-            size: (QueueLimit + 1) * Bytes4,
+            size: (QueueLimit * DrawPairLayout + 1) * Bytes4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         } as GPUBufferDescriptor);
         this.indirectBuffer = this.createIndirectBuffer(device);

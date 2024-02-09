@@ -3,7 +3,14 @@
  * Written by Noah Mattia Bussinger, February 2024
  */
 
+alias EntityIndex = u32;
+
 alias ClusterId = u32;
+
+struct DrawPair {
+    entity: EntityIndex,
+    cluster: ClusterId
+};
 
 struct Uniforms {
     viewProjection: mat4x4f,
@@ -22,6 +29,11 @@ struct Cluster {
     children: ClusterChildren
 };
 
+struct Entity {
+    position: vec3f,
+    root: ClusterId
+};
+
 struct Indirect {
     vertexCount: u32,
     instanceCount: atomic<u32>,
@@ -31,39 +43,44 @@ struct Indirect {
 
 struct Queue {
     length: atomic<u32>,
-    queue: array<ClusterId>,
+    queue: array<DrawPair>,
 };
+
+override WORKGROUP_SIZE: u32;
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var<storage, read_write> queue: Queue;
 @group(0) @binding(2) var<storage, read> clusters: array<Cluster>;
-@group(0) @binding(3) var<storage, read_write> indirect: Indirect;
-@group(0) @binding(4) var<storage, read_write> clusterDraw: array<ClusterId>;
+@group(0) @binding(3) var<storage, read> entities: array<Entity>;
+@group(0) @binding(4) var<storage, read_write> indirect: Indirect;
+@group(0) @binding(5) var<storage, read_write> drawPairs: array<DrawPair>;
 
-@compute @workgroup_size(1, 1, 1) fn cs(@builtin(global_invocation_id) globalInvocationId: vec3<u32>) {
-    let threshold: f32 = (length(uniforms.cameraPosition) - 1) * 0.1; // (length(camera-objectposition) - objectradius) * 0... //compute in instance compute shader and pass here
-    
+@compute @workgroup_size(WORKGROUP_SIZE) fn cs() {
     while(true) {
 
-        let length: u32 = atomicLoad(&queue.length);
-        if (length == 0) {
+        let len: u32 = atomicLoad(&queue.length);
+        if (len == 0) {
             break;
         }
-        if (!atomicCompareExchangeWeak(&queue.length, length, length - 1).exchanged) {
+
+        if (!atomicCompareExchangeWeak(&queue.length, len, len - 1).exchanged) {
             continue;
         }
-
-        let id: ClusterId = queue.queue[length - 1];
-        let cluster: Cluster = clusters[id];
+        
+        let drawPair: DrawPair = queue.queue[len - 1];
+        let cluster: Cluster = clusters[drawPair.cluster];
+        let entity: Entity = entities[drawPair.entity];
+        let threshold: f32 = (length(entity.position - uniforms.cameraPosition) - 1) * 0.1; 
+        // - entity/geometry.radius
 
         if ((cluster.parentError == 0 || cluster.parentError > threshold) && 
             (cluster.children.length == 0 || cluster.error <= threshold)) {
-            clusterDraw[atomicAdd(&indirect.instanceCount, 1)] = id;
+            drawPairs[atomicAdd(&indirect.instanceCount, 1)] = drawPair;
             continue;
         }
 
         for (var i: u32 = 0; i < cluster.children.length; i++) {
-            queue.queue[atomicAdd(&queue.length, 1)] = cluster.children.ids[i];
+            queue.queue[atomicAdd(&queue.length, 1)] = DrawPair(drawPair.entity, cluster.children.ids[i]);
         }
     }
 }
