@@ -3,8 +3,8 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { Entity } from "./core/Entity.js";
-import { Renderer } from "./core/Renderer.js";
+import { Entity } from "./components/Entity.js";
+import { Renderer } from "./components/Renderer.js";
 
 const renderer: Renderer = new Renderer();
 await renderer.import("test", "./resources/bunlow.obj");

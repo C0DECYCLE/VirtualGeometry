@@ -5,11 +5,11 @@
 
 import { assert } from "../utilities/utils.js";
 import { EmptyCallback, Nullable, float } from "../utils.type.js";
-import { Camera } from "../components/Camera.js";
-import { Controller } from "../components/Controller.js";
+import { Camera } from "./Camera.js";
+import { Controller } from "./Controller.js";
 import { PersistentThreads, WebGPURequirements } from "../constants.js";
 import { GeometryHandler } from "../handlers/GeometryHandler.js";
-import { Analytics } from "../components/Analytics.js";
+import { Analytics } from "./Analytics.js";
 import { UniformHandler } from "../handlers/UniformHandler.js";
 import { EntityHandler } from "../handlers/EntityHandler.js";
 import { DrawHandler } from "../handlers/DrawHandler.js";

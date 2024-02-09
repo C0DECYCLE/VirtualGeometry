@@ -5,7 +5,7 @@
 
 import { assert } from "../utilities/utils.js";
 import { Nullable } from "../utils.type.js";
-import { Renderer } from "../core/Renderer.js";
+import { Renderer } from "../components/Renderer.js";
 import { TextureHandler } from "./TextureHandler.js";
 
 export class AttachmentHandler {

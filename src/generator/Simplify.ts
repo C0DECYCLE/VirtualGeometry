@@ -14,11 +14,10 @@ import { assert } from "../utilities/utils.js";
 import { Nullable, float, int } from "../utils.type.js";
 import { Count } from "./Count.js";
 import { Edge } from "./Edge.js";
-import { GeometryHelper } from "./GeometryHelper.js";
 import { Triangle } from "./Triangle.js";
 import { Vertex } from "./Vertex.js";
 
-export class GeometrySimplify {
+export class Simplify {
     public static Simplify(
         count: Count,
         vertcies: Vertex[],
@@ -27,14 +26,14 @@ export class GeometrySimplify {
     ): void {
         const triangleLimit: int = ClusterGroupingLimit * ClusterTrianglesLimit;
         assert(triangles.length <= triangleLimit);
-        const self = GeometrySimplify;
-        const border: Set<VertexId> = self.FindBorderVertices(edges);
+        const border: Set<VertexId> = Simplify.FindBorderVertices(edges);
         let reduce: int = Math.ceil(triangles.length / 2);
         if (triangles.length > triangleLimit / 2) {
             reduce = triangleLimit / 2;
         }
         while (triangles.length > reduce) {
-            if (!self.CollapseEdge(count, vertcies, triangles, edges, border)) {
+            // prettier-ignore
+            if (!Simplify.CollapseEdge(count, vertcies, triangles, edges, border)) {
                 throw new Error(
                     `GeometrySimplify: Collapse stopped at ${triangles.length}/${reduce}. Change model or allow micro cracks.`,
                 );
@@ -62,16 +61,13 @@ export class GeometrySimplify {
         edges: Map<EdgeIdentifier, Edge>,
         border: Set<VertexId>,
     ): boolean {
-        const self = GeometrySimplify;
-        const collapse: Nullable<Edge> = self.GetNextCollapse(edges, border);
+        // prettier-ignore
+        const collapse: Nullable<Edge> = Simplify.GetNextCollapse(edges, border);
         if (!collapse) {
             return false;
         }
-        const replacement: Vertex = self.CreateReplacement(
-            count,
-            collapse,
-            border,
-        );
+        // prettier-ignore
+        const replacement: Vertex = Simplify.CreateReplacement(count, collapse, border);
         vertices.push(replacement);
         const remove: int[] = [];
         for (let i: int = 0; i < triangles.length; i++) {
@@ -82,20 +78,20 @@ export class GeometrySimplify {
                 collapse.triangles.includes(triangle) ||
                 (aInTriangle !== -1 && bInTriangle !== -1)
             ) {
-                self.DeleteBadEdges(triangle, collapse, edges);
+                Simplify.DeleteBadEdges(triangle, collapse, edges);
                 remove.push(i);
                 continue;
             }
             if (aInTriangle !== -1) {
-                self.DeleteBadEdges(triangle, collapse, edges);
+                Simplify.DeleteBadEdges(triangle, collapse, edges);
                 triangle.vertices[aInTriangle] = replacement;
-                GeometryHelper.RegisterEdges(edges, triangle);
+                triangle.registerEdgesToMap(edges);
                 continue;
             }
             if (bInTriangle !== -1) {
-                self.DeleteBadEdges(triangle, collapse, edges);
+                Simplify.DeleteBadEdges(triangle, collapse, edges);
                 triangle.vertices[bInTriangle] = replacement;
-                GeometryHelper.RegisterEdges(edges, triangle);
+                triangle.registerEdgesToMap(edges);
                 continue;
             }
         }

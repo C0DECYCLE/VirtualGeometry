@@ -3,8 +3,10 @@
  * Written by Noah Mattia Bussinger, October 2023
  */
 
-import { Vec3 } from "./utilities/Vec3";
-import { int } from "./utils.type";
+import { Cluster } from "./generator/Cluster";
+import { Nullable, int } from "./utils.type";
+
+export type Flushable<T> = Nullable<T>;
 
 export type GeometryId = int;
 
@@ -19,16 +21,7 @@ export type GeometryExport = {
 
 export type ClusterId = int;
 
-export type ClusterCenter = {
-    sum: Vec3;
-    n: int;
-    center: Vec3;
-};
-
-export type ClusterBounds = {
-    min: Vec3;
-    max: Vec3;
-};
+export type ClusterGroup = Cluster[];
 
 /*
 export type ClusterExport = {

@@ -123,8 +123,8 @@
     // X first push all via instance compute,
     // X later push only top of acceleration tree
     // X implement acceleraltion tree
-    //multiple instances
-    //compact and finish geometry pipeline
+    //multiple entities / instances
+    //finish geometry pipeline
     //in the end make virtual geometry exportable and loadable
 
     //OPTIMIZE:
@@ -132,8 +132,8 @@
     // X evaluate each cluster currently
     // X -> should do tree based not evaluate children with persistant threads and atomic queue
     // X -> tree based on parenterror? for deciding to traverse children?
-    //memory leak because of keeping unused stuff
-    //improve code, refactor reduce memory and redudant stuff (children/parentlength into cluster/group memory)
+    // X clean up, improve code, compact everything, refactor reduce memory and redudant stuff
+    // X memory leak because of keeping unused stuff?
     //cluster frustum culling
     //instance frustum culling
 

@@ -5,7 +5,7 @@
 
 import { assert } from "../utilities/utils.js";
 import { Nullable, int } from "../utils.type.js";
-import { Renderer } from "../core/Renderer.js";
+import { Renderer } from "../components/Renderer.js";
 import { UniformHandler } from "./UniformHandler.js";
 import { GeometryHandler } from "./GeometryHandler.js";
 import { PipelineHandler } from "./PipelineHandler.js";

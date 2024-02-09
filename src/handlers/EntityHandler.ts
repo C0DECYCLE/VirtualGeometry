@@ -6,8 +6,8 @@
 import { Bytes4, EntityLimit, EntityStride } from "../constants.js";
 import { assert } from "../utilities/utils.js";
 import { Nullable, int } from "../utils.type.js";
-import { Entity } from "../core/Entity.js";
-import { Renderer } from "../core/Renderer.js";
+import { Entity } from "../components/Entity.js";
+import { Renderer } from "../components/Renderer.js";
 import { BufferWrite, EntityChange, EntityIndex } from "../core.type.js";
 
 export class EntityHandler {

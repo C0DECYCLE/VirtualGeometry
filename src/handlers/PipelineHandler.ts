@@ -6,7 +6,7 @@
 import { TextureFormats } from "../constants.js";
 import { assert } from "../utilities/utils.js";
 import { Nullable } from "../utils.type.js";
-import { Renderer } from "../core/Renderer.js";
+import { Renderer } from "../components/Renderer.js";
 
 export class PipelineHandler {
     private readonly renderer: Renderer;

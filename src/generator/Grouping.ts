@@ -4,30 +4,33 @@
  */
 
 import { ClusterGroupingLimit } from "../constants.js";
-import { VertexId } from "../core.type.js";
+import { ClusterGroup, EdgeIdentifier, VertexId } from "../core.type.js";
 import { assert, swapRemove } from "../utilities/utils.js";
 import { Undefinable, int } from "../utils.type.js";
 import { Cluster } from "./Cluster.js";
+import { Count } from "./Count.js";
+import { Edge } from "./Edge.js";
+import { Triangle } from "./Triangle.js";
 
-export class GeometryGrouping {
-    public static Group(clusters: Cluster[]): Cluster[][] {
-        const self = GeometryGrouping;
-        const groups: Cluster[][] = [];
+export class Grouping {
+    public static Group(clusters: Cluster[]): ClusterGroup[] {
+        const groups: ClusterGroup[] = [];
         const unused: Cluster[] = [...clusters];
         let suggestion: Undefinable<Cluster> = undefined;
         while (unused.length > 0) {
-            const group: Cluster[] = [];
-            const first: Cluster = self.PopFirst(suggestion, unused);
+            const group: ClusterGroup = [];
+            const first: Cluster = Grouping.PopFirst(suggestion, unused);
             suggestion = undefined;
             group.push(first);
             while (group.length < ClusterGroupingLimit && unused.length > 0) {
-                const { index, highest } = self.FindHighest(group, unused);
+                // prettier-ignore
+                const { index, highest } = Grouping.FindHighest(group, unused);
                 swapRemove(unused, index);
                 group.push(highest);
             }
             groups.push(group);
             if (unused.length > 0) {
-                suggestion = self.FindHighest(group, unused).highest;
+                suggestion = Grouping.FindHighest(group, unused).highest;
             }
         }
         return groups;
@@ -47,7 +50,7 @@ export class GeometryGrouping {
     }
 
     private static FindHighest(
-        group: Cluster[],
+        group: ClusterGroup,
         candidates: Cluster[],
     ): {
         index: int;
@@ -58,12 +61,12 @@ export class GeometryGrouping {
         let highest: Undefinable<Cluster> = undefined;
         let score: int = -1;
         const border: Set<VertexId> = new Set<VertexId>(
-            group.flatMap((cluster: Cluster) => [...cluster.border]),
+            group.flatMap((cluster: Cluster) => [...cluster.border!]),
         );
         for (let i: int = 0; i < candidates.length; i++) {
             const cluster: Cluster = candidates[i];
             let matching: int = 0;
-            cluster.border.forEach((id: VertexId) => {
+            cluster.border!.forEach((id: VertexId) => {
                 if (border.has(id)) {
                     matching++;
                 }
@@ -76,5 +79,28 @@ export class GeometryGrouping {
         }
         assert(index !== undefined && highest);
         return { index, highest };
+    }
+
+    public static Merge(
+        count: Count,
+        group: ClusterGroup,
+    ): { triangles: Triangle[]; edges: Map<EdgeIdentifier, Edge> } {
+        assert(group.length > 0);
+        const triangles: Triangle[] = [];
+        const edges: Map<EdgeIdentifier, Edge> = new Map<
+            EdgeIdentifier,
+            Edge
+        >();
+        for (let i: int = 0; i < group.length; i++) {
+            const cluster: Cluster = group[i];
+            for (let j: int = 0; j < cluster.triangles.length; j++) {
+                const triangle: Triangle = new Triangle(count, [
+                    ...cluster.triangles[j].vertices,
+                ]);
+                triangles.push(triangle);
+                triangle.registerEdgesToMap(edges);
+            }
+        }
+        return { triangles, edges };
     }
 }

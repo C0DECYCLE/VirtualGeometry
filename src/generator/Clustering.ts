@@ -11,30 +11,35 @@ import { Cluster } from "./Cluster.js";
 import { Count } from "./Count.js";
 import { Triangle } from "./Triangle.js";
 
-export class GeometryClustering {
-    public static Clusterize(count: Count, triangles: Triangle[]): Cluster[] {
-        const self = GeometryClustering;
+export class Clustering {
+    public static ClusterizeWithAdjacency(
+        count: Count,
+        triangles: Triangle[],
+    ): Cluster[] {
         const clusters: Cluster[] = [];
         const unused: Triangle[] = [...triangles];
         let suggestion: Undefinable<Triangle> = undefined;
-        const center: Vec3 = self.ComputeCenter(triangles);
+        const center: Vec3 = Cluster.ComputeCenter(triangles);
         while (unused.length > 0) {
             const use: Triangle[] = [];
             const candidates: Triangle[] = [];
-            const first: Triangle = self.PopFirst(suggestion, unused, center);
+            // prettier-ignore
+            const first: Triangle = Clustering.PopFirst(suggestion, unused, center);
             suggestion = undefined;
             use.push(first);
             candidates.push(...first.getAdjacent());
             while (use.length < ClusterTrianglesLimit && unused.length > 0) {
                 const target: Vec3 = first.getCenter();
                 if (candidates.length === 0) {
-                    const { index, nearest } = self.FindNearest(target, unused);
+                    // prettier-ignore
+                    const { index, nearest } = Clustering.FindNearest(target, unused);
                     swapRemove(unused, index);
                     use.push(nearest);
                     candidates.push(...nearest.getAdjacent());
                     continue;
                 }
-                const { index, nearest } = self.FindNearest(target, candidates);
+                // prettier-ignore
+                const { index, nearest } = Clustering.FindNearest(target, candidates);
                 swapRemove(candidates, index);
                 const nearestInUnusedAt: int = unused.indexOf(nearest);
                 if (nearestInUnusedAt !== -1) {
@@ -48,25 +53,43 @@ export class GeometryClustering {
                 (candidate: Triangle) => unused.includes(candidate),
             );
             if (possible.length > 0) {
-                suggestion = self.FindNearest(
-                    clusters[0].getCenter(),
-                    possible,
-                ).nearest;
+                assert(clusters[0].center);
+                // prettier-ignore
+                suggestion = Clustering.FindNearest(clusters[0].center, possible).nearest;
             }
         }
         return clusters;
     }
 
-    private static ComputeCenter(triangles: Triangle[]): Vec3 {
-        const center: Vec3 = new Vec3();
-        for (let i: int = 0; i < triangles.length; i++) {
-            const triangle: Triangle = triangles[i];
-            center.add(triangle.vertices[0].position);
-            center.add(triangle.vertices[1].position);
-            center.add(triangle.vertices[2].position);
+    public static ClusterizeWithoutAdjacency(
+        count: Count,
+        triangles: Triangle[],
+    ): Cluster[] {
+        const clusters: Cluster[] = [];
+        const unused: Triangle[] = [...triangles];
+        let suggestion: Undefinable<Triangle> = undefined;
+        const center: Vec3 = Cluster.ComputeCenter(triangles);
+        while (unused.length > 0) {
+            const use: Triangle[] = [];
+            // prettier-ignore
+            const first: Triangle = Clustering.PopFirst(suggestion, unused, center);
+            suggestion = undefined;
+            use.push(first);
+            while (use.length < ClusterTrianglesLimit && unused.length > 0) {
+                const target: Vec3 = first.getCenter();
+                // prettier-ignore
+                const { index, nearest } = Clustering.FindNearest(target, unused);
+                swapRemove(unused, index);
+                use.push(nearest);
+            }
+            clusters.push(new Cluster(count, use));
+            if (unused.length > 0) {
+                assert(clusters[0].center);
+                // prettier-ignore
+                suggestion = Clustering.FindNearest(clusters[0].center, unused).nearest;
+            }
         }
-        center.scale(1 / (triangles.length * 3));
-        return center;
+        return clusters;
     }
 
     private static PopFirst(
@@ -127,36 +150,5 @@ export class GeometryClustering {
         }
         assert(index !== undefined && nearest);
         return { index, nearest };
-    }
-
-    public static ClusterizeWithoutAdjacency(
-        count: Count,
-        triangles: Triangle[],
-    ): Cluster[] {
-        const self = GeometryClustering;
-        const clusters: Cluster[] = [];
-        const unused: Triangle[] = [...triangles];
-        let suggestion: Undefinable<Triangle> = undefined;
-        const center: Vec3 = self.ComputeCenter(triangles);
-        while (unused.length > 0) {
-            const use: Triangle[] = [];
-            const first: Triangle = self.PopFirst(suggestion, unused, center);
-            suggestion = undefined;
-            use.push(first);
-            while (use.length < ClusterTrianglesLimit && unused.length > 0) {
-                const target: Vec3 = first.getCenter();
-                const { index, nearest } = self.FindNearest(target, unused);
-                swapRemove(unused, index);
-                use.push(nearest);
-            }
-            clusters.push(new Cluster(count, use));
-            if (unused.length > 0) {
-                suggestion = self.FindNearest(
-                    clusters[0].getCenter(),
-                    unused,
-                ).nearest;
-            }
-        }
-        return clusters;
     }
 }
