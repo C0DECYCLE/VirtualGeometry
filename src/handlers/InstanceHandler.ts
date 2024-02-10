@@ -18,6 +18,7 @@ import {
 export class InstanceHandler {
     private readonly renderer: Renderer;
 
+    public readonly queueHeader: Uint32Array;
     public queueBuffer: Nullable<GPUBuffer>;
 
     public readonly indirectData: Uint32Array;
@@ -25,6 +26,7 @@ export class InstanceHandler {
 
     public constructor(renderer: Renderer) {
         this.renderer = renderer;
+        this.queueHeader = new Uint32Array(QueueHeaderLayout);
         this.queueBuffer = null;
         this.indirectData = new Uint32Array([0, 1, 1]);
         this.indirectBuffer = null;
@@ -67,15 +69,15 @@ export class InstanceHandler {
         );
     }
 
-    public resetQueue(): void {
+    public resetQueueHeader(): void {
         const device: Nullable<GPUDevice> = this.renderer.device;
         assert(device && this.queueBuffer);
         device.queue.writeBuffer(
             this.queueBuffer,
             0,
-            new Uint32Array([0]),
+            this.queueHeader,
             0,
-            1,
+            this.queueHeader.length,
         );
     }
 

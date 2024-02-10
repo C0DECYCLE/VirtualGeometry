@@ -58,13 +58,12 @@ const THRESHOLD_SCALE: f32 = 0.1;
 @group(0) @binding(5) var<storage, read_write> drawPairs: array<DrawPair>;
 
 @compute @workgroup_size(WORKGROUP_SIZE) fn cs(@builtin(global_invocation_id) globalInvocationId: vec3<u32>) {
-    //let id: u32 = globalInvocationId.x + 1; // to ensure no 0 for lock
+    let id: u32 = globalInvocationId.x + 1; // to ensure no 0 for lock
 
     var safety: u32 = 0;
     while(safety < 1000000) {
         safety += 1;
 
-        /*
         if (queueRequestLock(id)) {
 
             if (atomicLoad(&queue.length) == 0) {
@@ -72,42 +71,27 @@ const THRESHOLD_SCALE: f32 = 0.1;
             }
             let drawPair: DrawPair = queuePop();
 
+            queueUnLock();
+
             let cluster: Cluster = clusters[drawPair.cluster];
             let entity: Entity = entities[drawPair.entity];
             let threshold: f32 = (length(entity.position - uniforms.cameraPosition) - 1) * THRESHOLD_SCALE; // - entity/geometry.radius
 
             if ((cluster.parentError == 0 || cluster.parentError > threshold) && (cluster.children.length == 0 || cluster.error <= threshold)) {
                 drawPairsPush(drawPair);
-            } else {
-                for (var i: u32 = 0; i < cluster.children.length; i++) {
-                    queuePush(DrawPair(drawPair.entity, cluster.children.ids[i]));
-                }
+                continue;
             }
-            
-            queueUnLock();
-        }
-        */
 
-        let len: u32 = atomicLoad(&queue.length);
-        if (len == 0) {
-            break;
-        }
-        if (!atomicCompareExchangeWeak(&queue.length, len, len - 1).exchanged) {
-            continue;
-        }
-        let drawPair: DrawPair = queue.queue[len - 1];
+            while (!queueRequestLock(id)) {}
 
-        let cluster: Cluster = clusters[drawPair.cluster];
-        let entity: Entity = entities[drawPair.entity];
-        let threshold: f32 = (length(entity.position - uniforms.cameraPosition) - 1) * THRESHOLD_SCALE; // - entity/geometry.radius
-
-        if ((cluster.parentError == 0 || cluster.parentError > threshold) && (cluster.children.length == 0 || cluster.error <= threshold)) {
-            drawPairsPush(drawPair);
-        } else {
             for (var i: u32 = 0; i < cluster.children.length; i++) {
                 queuePush(DrawPair(drawPair.entity, cluster.children.ids[i]));
             }
+
+            queueUnLock();
+            
         }
+        
     }
 }
 

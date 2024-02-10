@@ -207,7 +207,7 @@ export class Renderer {
         } as GPUObjectDescriptorBase);
         if (!this.isFrozen) {
             this.handlers.instance.setExecute(this.handlers.entity.count());
-            this.handlers.instance.resetQueue();
+            this.handlers.instance.resetQueueHeader();
             this.handlers.cluster.setExecute(PersistentThreadGroups);
             this.handlers.draw.setExecute(0);
             this.handlers.instance.execute(encoder);
