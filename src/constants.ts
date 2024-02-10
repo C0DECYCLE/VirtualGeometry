@@ -17,6 +17,8 @@ export const ClusterLayout: int = 1 + 1 + 1 + 1 + 1;
 
 export const DrawPairLayout: int = 1 + 1;
 
+export const QueueHeaderLayout: int = 1 + 1;
+
 export const AllowMicroCracks: boolean = true;
 
 export const ClusterTrianglesLimit: int = 128;

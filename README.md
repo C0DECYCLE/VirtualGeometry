@@ -25,6 +25,14 @@
 -   https://graphics.stanford.edu/courses/cs468-10-fall/LectureSlides/08_Simplification.pdf
 -   https://www.ri.cmu.edu/pub_files/pub2/garland_michael_1997_1/garland_michael_1997_1.pdf
 -   https://blog.traverseresearch.nl/creating-a-directed-acyclic-graph-from-a-mesh-1329e57286e5
+-   https://gist.github.com/Shimmen/16aabbc19feb70a4d7b9399e508d20ab
+-   https://www.geeksforgeeks.org/introduction-and-array-implementation-of-queue/
+-   https://toji.dev/webgpu-best-practices/
+-   https://github.com/rigtorp/MPMCQueue
+-   https://github.com/gpuweb/gpuweb/issues/1360
+-   https://stackoverflow.com/questions/25709548/lock-free-multiple-producer-consumer-queue-in-c11
+-   https://moodycamel.com/blog/2014/a-fast-general-purpose-lock-free-queue-for-c++
+-   https://jbseg.medium.com/lock-free-queues-e48de693654b
 
 ## Idea
 
@@ -135,7 +143,7 @@
     // X clean up, improve code, compact everything, refactor reduce memory and redudant stuff
     // X memory leak because of keeping unused stuff?
     //threshold with object radius
-    //better persistant threads: (aka use more than 32 threads) better global queue or one queue per object with its workgroup? something!! make real queue not just list like now, maybe: https://gist.github.com/Shimmen/16aabbc19feb70a4d7b9399e508d20ab
+    //better persistant threads: (aka use more than 32 threads) better global queue or one queue per object with its workgroup? something!! make real queue not just list like now: lock or lockfree queues
     //instance frustum culling
     //cluster frustum culling
 

@@ -18,9 +18,11 @@ struct Entity {
 };
 
 struct Queue {
+    lock: atomic<u32>, // 0 = no-lock
     length: atomic<u32>,
     queue: array<DrawPair>,
 };
+
 
 @group(0) @binding(0) var<storage, read> entities: array<Entity>;
 @group(0) @binding(1) var<storage, read_write> queue: Queue;
@@ -28,5 +30,9 @@ struct Queue {
 @compute @workgroup_size(1) fn cs(@builtin(global_invocation_id) globalInvocationId: vec3<u32>) {
     let index: u32 = globalInvocationId.x;
     let entity: Entity = entities[index];
-    queue.queue[atomicAdd(&queue.length, 1)] = DrawPair(index, entity.root);
+    queuePush(DrawPair(index, entity.root));
+}
+
+fn queuePush(drawPair: DrawPair) {
+    queue.queue[atomicAdd(&queue.length, 1)] = drawPair;
 }

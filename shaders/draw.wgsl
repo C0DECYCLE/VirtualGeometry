@@ -36,6 +36,7 @@ struct VertexShaderOut {
 };
 
 override TRIANGLES_LIMIT: u32;
+const TRIANGLE_VERTICES: u32 = 3;
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var<storage, read> drawPairs: array<DrawPair>;
@@ -46,7 +47,7 @@ override TRIANGLES_LIMIT: u32;
 @vertex fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> VertexShaderOut {
     let drawPair: DrawPair = drawPairs[instanceIndex];
     let entity: Entity = entities[drawPair.entity];
-    let vertexId: VertexId = triangles[drawPair.cluster * TRIANGLES_LIMIT * 3 + vertexIndex];
+    let vertexId: VertexId = triangles[drawPair.cluster * TRIANGLES_LIMIT * TRIANGLE_VERTICES + vertexIndex];
     let vertex: Vertex = vertecies[vertexId];
     let position: vec3f = vertex.position + entity.position;
     var out: VertexShaderOut;
