@@ -9,16 +9,16 @@ import { float, int } from "./utils.type.js";
 
 const renderer: Renderer = new Renderer();
 
-const keys: string[] = ["bunlow", "dralow", "suhigh"];
+const keys: string[] = ["dralow" /*, "bunlow", "suhigh"*/];
 for (let i: int = 0; i < keys.length; i++) {
     await renderer.import(keys[i], `./resources/${keys[i]}.obj`);
 }
 
 await renderer.prepare();
 
-const n: int = 8;
+const n: int = 10;
 const o: float = (n - 1) / 2;
-const s: float = 8.0;
+const s: float = 5.0;
 for (let i: int = 0; i < n; i++) {
     for (let j: int = 0; j < n; j++) {
         const entity: Entity = new Entity(

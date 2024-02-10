@@ -142,10 +142,11 @@
     // X -> tree based on parenterror? for deciding to traverse children?
     // X clean up, improve code, compact everything, refactor reduce memory and redudant stuff
     // X memory leak because of keeping unused stuff?
+    // X real queue in persistant threads
     //threshold with object radius
-    //better persistant threads: (aka use more than 32 threads) better global queue or one queue per object with its workgroup? something!! make real queue not just list like now: lock or lockfree queues
     //instance frustum culling
     //cluster frustum culling
+    //better persistant threads/use more/find out why flickering
 
     // X freeze mode for debug
     // X detect if queue size is too small -> visible by holes
