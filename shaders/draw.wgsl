@@ -17,16 +17,17 @@ struct DrawPair {
 struct Uniforms {
     viewProjection: mat4x4f,
     viewMode: u32,
-    cameraPosition: vec3f,
+    cameraPosition: vec3f
 };
 
 struct Vertex {
-    position: vec3f,
+    position: vec3f
 };
 
 struct Entity {
     position: vec3f,
-    root: ClusterId
+    root: ClusterId,
+    radius: f32
 };
 
 struct VertexShaderOut {

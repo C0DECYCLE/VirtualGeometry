@@ -4,9 +4,17 @@
  */
 
 import { Cluster } from "./generator/Cluster";
-import { Nullable, int } from "./utils.type";
+import { Vec3 } from "./utilities/Vec3";
+import { Nullable, float, int } from "./utils.type";
 
 export type Flushable<T> = Nullable<T>;
+
+export type Bounding = {
+    min: Vec3;
+    max: Vec3;
+    center: Vec3;
+    radius: float;
+};
 
 export type GeometryId = int;
 

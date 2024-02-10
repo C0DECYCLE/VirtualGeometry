@@ -14,7 +14,8 @@ struct DrawPair {
 
 struct Entity {
     position: vec3f,
-    root: ClusterId
+    root: ClusterId,
+    radius: f32
 };
 
 struct Queue {

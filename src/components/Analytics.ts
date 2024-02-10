@@ -3,8 +3,13 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { AnalyticSamples, DrawPairLimit } from "../constants.js";
+import {
+    AnalyticSamples,
+    ClusterTrianglesLimit,
+    DrawPairLimit,
+} from "../constants.js";
 import { DrawHandler } from "../handlers/DrawHandler.js";
+import { EntityHandler } from "../handlers/EntityHandler.js";
 import { RollingAverage } from "../utilities/RollingAverage.js";
 import { warn } from "../utilities/logger.js";
 import { assert, dotit } from "../utilities/utils.js";
@@ -81,7 +86,11 @@ export class Analytics {
         this.timings.gpuDraw.resolve(encoder);
     }
 
-    public postFrame(now: float, draws: DrawHandler): void {
+    public postFrame(
+        now: float,
+        entities: EntityHandler,
+        draws: DrawHandler,
+    ): void {
         const deltas = this.deltas;
         const stats = this.stats;
         const deltaToFps = this.deltaToFps;
@@ -105,12 +114,25 @@ export class Analytics {
         );
         this.timings.gpuDraw.readback((ms: float) => deltas.gpuDraw.sample(ms));
 
+        stats.set("instances pre", entities.count() * 1);
+        // instances post
+
+        // clusters pre
         draws.readback((instanceCount: int) => {
             if (instanceCount > DrawPairLimit) {
                 warn("DrawHandler: Tried to draw more clusters than limit.");
             }
             stats.set("clusters post", instanceCount * 1);
         });
+
+        stats.set("triangles pre", entities.countLeaveTriangles() * 1);
+        stats.set(
+            "triangles post",
+            stats.get("clusters post")! * ClusterTrianglesLimit,
+        );
+
+        stats.set("vertices pre", stats.get("triangles pre")! * 3);
+        stats.set("vertices post", stats.get("triangles post")! * 3);
 
         stats.update(`
             <b>frame rate: ${deltaToFps(deltas.frame.get())} fps</b><br>
@@ -126,20 +148,20 @@ export class Analytics {
             | draw: ${dotit(deltas.gpuDraw.get().toFixed(2))} ms<br>
             <br>
             <b>instances:</b><br>
-            | pre: ? // all instances known to renderer<br>
-            | post: ? // ones passed the culling<br>
+            | pre: ${dotit(stats.get("instances pre")!)}<br>
+            | post: ? // count of ones passed the culling<br>
             <br>
             <b>clusters:</b><br>
             | pre: ? // sum of clusters of each passed instance<br>
             | post: ${dotit(stats.get("clusters post")!)}<br>
             <br>
             <b>triangles:</b><br>
-            | pre: ? // sum of leave triangles of all instance<br>
-            | post: ${dotit(stats.get("clusters post")! * 128)}<br>
+            | pre: ${dotit(stats.get("triangles pre")!)}<br>
+            | post: ${dotit(stats.get("triangles post")!)}<br>
             <br>
             <b>vertices:</b><br>
-            | pre: ? // sum of leave vertices of all instance<br> 
-            | post: ${dotit(stats.get("clusters post")! * 128 * 3)}<br>
+            | pre: ${dotit(stats.get("vertices pre")!)}<br> 
+            | post: ${dotit(stats.get("vertices post")!)}<br>
         `);
 
         stats.set("frame delta", now);

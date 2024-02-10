@@ -38,7 +38,7 @@ export class Renderer {
         cluster: ClusterHandler;
         draw: DrawHandler;
     };
-    private camera: Nullable<Camera>;
+    public camera: Nullable<Camera>;
     private control: Nullable<Controller>;
 
     public readonly presentationFormat: GPUTextureFormat;
@@ -66,6 +66,8 @@ export class Renderer {
             cluster: new ClusterHandler(this),
             draw: new DrawHandler(this),
         };
+        this.camera = null;
+        this.control = null;
         this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
         this.canvas = null;
         this.adapter = null;
@@ -165,7 +167,6 @@ export class Renderer {
     private prepareCameraControl(): void {
         assert(this.canvas);
         this.camera = new Camera(this.canvas.width / this.canvas.height, 1000);
-        this.camera.position.set(0, 0, 5);
         this.control = new Controller(this.canvas, this.camera);
     }
 
@@ -188,7 +189,7 @@ export class Renderer {
         this.analytics.preFrame();
         this.gpuSync();
         this.execute();
-        this.analytics.postFrame(now, this.handlers.draw);
+        this.analytics.postFrame(now, this.handlers.entity, this.handlers.draw);
     }
 
     private gpuSync(): void {

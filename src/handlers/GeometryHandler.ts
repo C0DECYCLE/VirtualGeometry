@@ -3,8 +3,8 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { ClusterId, GeometryKey } from "../core.type.js";
-import { Nullable } from "../utils.type.js";
+import { Bounding, ClusterId, GeometryKey } from "../core.type.js";
+import { Nullable, int } from "../utils.type.js";
 import { Geometry } from "../components/Geometry.js";
 import { Generator } from "../generator/Generator.js";
 import { assert } from "../utilities/utils.js";
@@ -46,5 +46,13 @@ export class GeometryHandler {
     public getRootId(key: GeometryKey): ClusterId {
         assert(this.rootIds);
         return this.rootIds.get(key)!;
+    }
+
+    public getBounding(key: GeometryKey): Bounding {
+        return this.geometries.get(key)!.bounding;
+    }
+
+    public getLeaveTrianglesCount(key: GeometryKey): int {
+        return this.geometries.get(key)!.leaveTrianglesCount;
     }
 }

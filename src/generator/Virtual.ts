@@ -5,6 +5,7 @@
 
 import { OBJParseResult, OBJParser } from "../components/OBJParser.js";
 import {
+    Bounding,
     ClusterGroup,
     EdgeIdentifier,
     GeometryId,
@@ -12,7 +13,7 @@ import {
 } from "../core.type.js";
 import { log, warn } from "../utilities/logger.js";
 import { assert, dotit } from "../utilities/utils.js";
-import { float, int } from "../utils.type.js";
+import { Nullable, Undefinable, float, int } from "../utils.type.js";
 import { Cluster } from "./Cluster.js";
 import { Count } from "./Count.js";
 import { Clustering } from "./Clustering.js";
@@ -22,19 +23,25 @@ import { Triangle } from "./Triangle.js";
 import { Vertex } from "./Vertex.js";
 import { VertexLayout } from "../constants.js";
 import { Edge } from "./Edge.js";
+import { Vec3 } from "../utilities/Vec3.js";
 
 export class Virtual {
     public readonly id: GeometryId;
     public readonly key: GeometryKey;
+    public bounding: Nullable<Bounding>;
 
     public readonly vertices: Vertex[];
     public readonly clusters: Cluster[];
 
+    public leaveTrianglesCount: Undefinable<int>;
+
     public constructor(count: Count, key: GeometryKey, base: OBJParseResult) {
         this.id = count.registerGeometry();
         this.key = key;
+        this.bounding = null;
         this.vertices = [];
         this.clusters = [];
+        this.leaveTrianglesCount = undefined;
         if (base.vertices && base.verticesCount) {
             this.baseObj(count, base);
             this.flush();
@@ -52,6 +59,7 @@ export class Virtual {
         this.extractVertices(count, obj);
         // prettier-ignore
         const triangles: Triangle[] = this.extractTrianglesEdges(count, obj, this.vertices);
+        this.leaveTrianglesCount = triangles.length;
         // prettier-ignore
         const leaves: Cluster[] = Clustering.ClusterizeWithAdjacency(count, triangles);
         this.constructDAGAndTree(count, leaves);
@@ -66,13 +74,28 @@ export class Virtual {
     private extractVertices(count: Count, parse: OBJParseResult): void {
         const stride: int = parse.vertices.length / parse.verticesCount;
         assert(stride === VertexLayout);
+        const min: Vec3 = new Vec3();
+        const max: Vec3 = new Vec3();
         for (let i: int = 0; i < parse.verticesCount; i++) {
             const vertex: Vertex = new Vertex(
                 count,
                 parse.vertices.slice(i * stride, (i + 1) * stride),
             );
             this.vertices.push(vertex);
+            min.x = Math.min(min.x, vertex.position.x);
+            min.y = Math.min(min.y, vertex.position.y);
+            min.z = Math.min(min.z, vertex.position.z);
+            max.x = Math.max(max.x, vertex.position.x);
+            max.y = Math.max(max.y, vertex.position.y);
+            max.z = Math.max(max.z, vertex.position.z);
         }
+        const center: Vec3 = min.clone().add(max).scale(0.5);
+        this.bounding = {
+            min: min,
+            max: max,
+            center: center,
+            radius: min.clone().sub(center).length(),
+        } as Bounding;
     }
 
     private extractTrianglesEdges(

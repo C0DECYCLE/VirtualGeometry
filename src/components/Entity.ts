@@ -3,11 +3,11 @@
  * Written by Noah Mattia Bussinger, January 2024
  */
 
-import { ClusterId, EntityIndex, GeometryKey } from "../core.type.js";
+import { Bounding, ClusterId, EntityIndex, GeometryKey } from "../core.type.js";
 import { EntityHandler } from "../handlers/EntityHandler.js";
 import { Vec3 } from "../utilities/Vec3.js";
 import { assert } from "../utilities/utils.js";
-import { Nullable, Undefinable, float } from "../utils.type.js";
+import { Nullable, Undefinable, float, int } from "../utils.type.js";
 
 export class Entity {
     private readonly position: Vec3;
@@ -45,5 +45,15 @@ export class Entity {
     public getRootId(): ClusterId {
         assert(this.handler);
         return this.handler.getRootId(this.key);
+    }
+
+    public getBounding(): Bounding {
+        assert(this.handler);
+        return this.handler.getBounding(this.key);
+    }
+
+    public getLeaveTrianglesCount(): int {
+        assert(this.handler);
+        return this.handler.getLeaveTrianglesCount(this.key);
     }
 }

@@ -9,6 +9,7 @@ import { Nullable, int } from "../utils.type.js";
 import { Entity } from "../components/Entity.js";
 import { Renderer } from "../components/Renderer.js";
 import {
+    Bounding,
     BufferWrite,
     ClusterId,
     EntityChange,
@@ -59,8 +60,24 @@ export class EntityHandler {
         return this.renderer.handlers.geometry.getRootId(key);
     }
 
+    public getBounding(key: GeometryKey): Bounding {
+        return this.renderer.handlers.geometry.getBounding(key);
+    }
+
+    public getLeaveTrianglesCount(key: GeometryKey): int {
+        return this.renderer.handlers.geometry.getLeaveTrianglesCount(key);
+    }
+
     public count(): int {
         return this.list.length;
+    }
+
+    public countLeaveTriangles(): int {
+        let result: int = 0;
+        for (let i: int = 0; i < this.list.length; i++) {
+            result += this.list[i].getLeaveTrianglesCount();
+        }
+        return result;
     }
 
     public registerChange(index: EntityIndex, change: EntityChange): void {
@@ -81,6 +98,7 @@ export class EntityHandler {
             let offset: int = index * EntityLayout;
             this.list[index].getPosition().store(this.floatData, offset + 0);
             this.uIntData[offset + 3] = this.list[index].getRootId();
+            this.floatData[offset + 4] = this.list[index].getBounding().radius;
             this.compactWrites(writes, offset);
         }
         this.executeWrites(writes);

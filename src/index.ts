@@ -16,7 +16,7 @@ for (let i: int = 0; i < keys.length; i++) {
 
 await renderer.prepare();
 
-const n: int = 10;
+const n: int = 100; // 10
 const o: float = (n - 1) / 2;
 const s: float = 5.0;
 for (let i: int = 0; i < n; i++) {
@@ -33,4 +33,5 @@ renderer.run();
 
 (window as any).renderer = renderer;
 
+renderer.camera!.position.set(0, 3, 6);
 renderer.handlers.uniform.viewMode(1);

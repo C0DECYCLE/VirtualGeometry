@@ -143,12 +143,12 @@
     // X clean up, improve code, compact everything, refactor reduce memory and redudant stuff
     // X memory leak because of keeping unused stuff?
     // X real queue in persistant threads
-    //threshold with object radius
+    // X threshold with object radius
     //instance frustum culling
     //cluster frustum culling
-    //better persistant threads/use more/find out why flickering
+    //better persistant threads/use more/find out why flickering, be able to use more threads
 
     // X freeze mode for debug
     // X detect if queue size is too small -> visible by holes
     // X per instance shading mode
-    //debug info stats
+    //complete debug info stats

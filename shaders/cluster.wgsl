@@ -15,7 +15,7 @@ struct DrawPair {
 struct Uniforms {
     viewProjection: mat4x4f,
     viewMode: u32,
-    cameraPosition: vec3f,
+    cameraPosition: vec3f
 };
 
 struct Tree {
@@ -31,7 +31,8 @@ struct Cluster {
 
 struct Entity {
     position: vec3f,
-    root: ClusterId
+    root: ClusterId,
+    radius: f32
 };
 
 struct Indirect {
@@ -62,7 +63,7 @@ const THRESHOLD_SCALE: f32 = 0.1;
         let drawPair: DrawPair = dequeue();
         let cluster: Cluster = clusters[drawPair.cluster];
         let entity: Entity = entities[drawPair.entity];
-        let threshold: f32 = (length(entity.position - uniforms.cameraPosition) - 1) * THRESHOLD_SCALE; // - entity/geometry.radius
+        let threshold: f32 = (length(entity.position - uniforms.cameraPosition) - entity.radius) * THRESHOLD_SCALE;
         if ((cluster.parentError == 0 || cluster.parentError > threshold) && (cluster.children.length == 0 || cluster.error <= threshold)) {
             drawPairsPush(drawPair);
         } else {
