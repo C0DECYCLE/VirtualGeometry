@@ -147,6 +147,7 @@
     //instance frustum culling
     //cluster frustum culling
     //better persistant threads/use more/find out why flickering, be able to use more threads
+    //bug with duplicate clsuter drawing, reproduce by doing 1 instance.. > than leave clusters when near
 
     // X freeze mode for debug
     // X detect if queue size is too small -> visible by holes
