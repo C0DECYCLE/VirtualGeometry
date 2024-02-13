@@ -5,11 +5,11 @@
 
 import { assert } from "../utilities/utils.js";
 import { EmptyCallback, Nullable, float } from "../utils.type.js";
-import { Camera } from "./Camera.js";
-import { Controller } from "./Controller.js";
-import { PersistentThreadGroups, WebGPURequirements } from "../constants.js";
+import { Camera } from "../components/Camera.js";
+import { Controller } from "../components/Controller.js";
+import { WebGPURequirements } from "../constants.js";
 import { GeometryHandler } from "../handlers/GeometryHandler.js";
-import { Analytics } from "./Analytics.js";
+import { Analytics } from "../components/Analytics.js";
 import { UniformHandler } from "../handlers/UniformHandler.js";
 import { EntityHandler } from "../handlers/EntityHandler.js";
 import { DrawHandler } from "../handlers/DrawHandler.js";
@@ -19,7 +19,7 @@ import { AttachmentHandler } from "../handlers/AttachmentHandler.js";
 import { PipelineHandler } from "../handlers/PipelineHandler.js";
 import { BindGroupHandler } from "../handlers/BindGroupHandler.js";
 import { GeometryKey } from "../core.type.js";
-import { Entity } from "./Entity.js";
+import { Entity } from "../components/Entity.js";
 import { ClusterHandler } from "../handlers/ClusterHandler.js";
 import { InstanceHandler } from "../handlers/InstanceHandler.js";
 
@@ -209,7 +209,7 @@ export class Renderer {
         if (!this.isFrozen) {
             this.handlers.instance.setExecute(this.handlers.entity.count());
             this.handlers.instance.resetQueueHeader();
-            this.handlers.cluster.setExecute(PersistentThreadGroups);
+            this.handlers.cluster.setExecute(0 /*PersistentThreadGroups*/);
             this.handlers.draw.setExecute(0);
             this.handlers.instance.execute(encoder);
             this.handlers.cluster.execute(encoder);

@@ -29,9 +29,9 @@ export const EntityLimit: int = 10_000;
 
 export const PersistentThreadGroups: int = 1;
 
-export const PersistentThreadsPerGroup: int = 256; // 64
+export const PersistentThreadsPerGroup: int = 1; // 64
 
-export const QueueLimit: int = EntityLimit * 100;
+export const QueueLimit: int = EntityLimit * 1; /*00*/
 
 export const DrawPairLimit: int = 100_000;
 

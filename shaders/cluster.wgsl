@@ -42,25 +42,34 @@ struct Indirect {
     firstInstance: u32
 };
 
-struct Queue {
+struct AtomicQueue {
     front: atomic<u32>,
     rear: atomic<u32>,
     items: array<DrawPair>
 };
 
 override WORKGROUP_SIZE: u32;
-const THRESHOLD_SCALE: f32 = 0.1;
+const THRESHOLD_SCALE: f32 = 10.0;
+const QUEUE_CAPACTIY: u32 = 1000;
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(0) @binding(1) var<storage, read_write> queue: Queue;
+@group(0) @binding(1) var<storage, read_write> atomicQueue: AtomicQueue;
 @group(0) @binding(2) var<storage, read> clusters: array<Cluster>;
 @group(0) @binding(3) var<storage, read> entities: array<Entity>;
 @group(0) @binding(4) var<storage, read_write> indirect: Indirect;
 @group(0) @binding(5) var<storage, read_write> drawPairs: array<DrawPair>;
 
-@compute @workgroup_size(WORKGROUP_SIZE) fn cs() {
-    while(atomicLoad(&queue.front) < atomicLoad(&queue.rear)) {
-        let drawPair: DrawPair = dequeue();
+@compute @workgroup_size(WORKGROUP_SIZE) fn cs(@builtin(global_invocation_id) globalInvocationId: vec3<u32>) {
+    let id: u32 = globalInvocationId.x;
+    var front: u32 = 0;
+    var rear: u32 = 0;
+    var size: u32 = 0;
+    var items: array<DrawPair, 1000> = array<DrawPair, QUEUE_CAPACTIY>();
+    
+    /* ENQUEUE */ items[rear] = atomicQueue.items[id]; rear = (rear + 1) % QUEUE_CAPACTIY; size += 1;
+    
+    while (size != 0) {
+        let drawPair: DrawPair /* DEQUEUE */ = items[front]; front = (front + 1) % QUEUE_CAPACTIY; size -= 1;
         let cluster: Cluster = clusters[drawPair.cluster];
         let entity: Entity = entities[drawPair.entity];
         let threshold: f32 = (length(entity.position - uniforms.cameraPosition) - entity.radius) * THRESHOLD_SCALE;
@@ -68,18 +77,18 @@ const THRESHOLD_SCALE: f32 = 0.1;
             drawPairsPush(drawPair);
         } else {
             for (var i: u32 = 0; i < cluster.children.length; i++) {
-                enqueue(DrawPair(drawPair.entity, cluster.children.ids[i]));
+                /* ENQUEUE */ items[rear] = DrawPair(drawPair.entity, cluster.children.ids[i]); rear = (rear + 1) % QUEUE_CAPACTIY; size += 1;
             }
         }
     }
 }
 
 fn enqueue(drawPair: DrawPair) {
-    queue.items[atomicAdd(&queue.rear, 1)] = drawPair;
+    atomicQueue.items[atomicAdd(&atomicQueue.rear, 1)] = drawPair;
 }
 
 fn dequeue() -> DrawPair {
-    return queue.items[atomicAdd(&queue.front, 1)];
+    return atomicQueue.items[atomicAdd(&atomicQueue.front, 1)];
 }
 
 fn drawPairsPush(drawPair: DrawPair) {

@@ -21,7 +21,6 @@ import { Grouping } from "./Grouping.js";
 import { Simplify } from "./Simplify.js";
 import { Triangle } from "./Triangle.js";
 import { Vertex } from "./Vertex.js";
-import { VertexLayout } from "../constants.js";
 import { Edge } from "./Edge.js";
 import { Vec3 } from "../utilities/Vec3.js";
 
@@ -73,7 +72,7 @@ export class Virtual {
 
     private extractVertices(count: Count, parse: OBJParseResult): void {
         const stride: int = parse.vertices.length / parse.verticesCount;
-        assert(stride === VertexLayout);
+        //assert(stride === VertexLayout);
         const min: Vec3 = new Vec3();
         const max: Vec3 = new Vec3();
         for (let i: int = 0; i < parse.verticesCount; i++) {

@@ -4,21 +4,21 @@
  */
 
 import { Entity } from "./components/Entity.js";
-import { Renderer } from "./components/Renderer.js";
+import { Renderer } from "./core/Renderer.js";
 import { float, int } from "./utils.type.js";
 
 const renderer: Renderer = new Renderer();
 
-const keys: string[] = ["dralow" /*, "bunlow", "suhigh"*/];
+const keys: string[] = ["bakery" /*, "bunlow", "suhigh"*/];
 for (let i: int = 0; i < keys.length; i++) {
     await renderer.import(keys[i], `./resources/${keys[i]}.obj`);
 }
 
 await renderer.prepare();
 
-const n: int = 100; // 10
+const n: int = 1; // 10
 const o: float = (n - 1) / 2;
-const s: float = 5.0;
+const s: float = 5;
 for (let i: int = 0; i < n; i++) {
     for (let j: int = 0; j < n; j++) {
         const entity: Entity = new Entity(

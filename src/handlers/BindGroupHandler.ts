@@ -5,7 +5,7 @@
 
 import { assert } from "../utilities/utils.js";
 import { Nullable, int } from "../utils.type.js";
-import { Renderer } from "../components/Renderer.js";
+import { Renderer } from "../core/Renderer.js";
 import { UniformHandler } from "./UniformHandler.js";
 import { GeometryHandler } from "./GeometryHandler.js";
 import { PipelineHandler } from "./PipelineHandler.js";
@@ -40,14 +40,16 @@ export class BindGroupHandler {
         const entity: EntityHandler = this.renderer.handlers.entity;
         const instance: InstanceHandler = this.renderer.handlers.instance;
         const pipelines: PipelineHandler = this.renderer.handlers.pipeline;
+        const cluster: ClusterHandler = this.renderer.handlers.cluster;
         assert(pipelines.instance && instance.queueBuffer);
-        assert(entity.buffer);
+        assert(entity.buffer && cluster.indirectBuffer);
         return device.createBindGroup({
             label: "instance-bindgroup",
             layout: pipelines.instance.getBindGroupLayout(0),
             entries: [
                 this.createBinding(0, entity.buffer),
                 this.createBinding(1, instance.queueBuffer),
+                this.createBinding(2, cluster.indirectBuffer),
             ],
         } as GPUBindGroupDescriptor);
     }
