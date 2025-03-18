@@ -34,6 +34,11 @@
 -   https://moodycamel.com/blog/2014/a-fast-general-purpose-lock-free-queue-for-c++
 -   https://jbseg.medium.com/lock-free-queues-e48de693654b
 
+-   https://jms55.github.io/posts/2024-06-09-virtual-geometry-bevy-0-14/
+-   https://jms55.github.io/posts/2024-11-14-virtual-geometry-bevy-0-15/
+-   https://github.com/Scthe/nanite-webgpu?tab=readme-ov-file
+-   https://chaoticbob.github.io/2024/01/24/mesh-shading-part-1.html
+
 ## Idea
 
 ### Instance
