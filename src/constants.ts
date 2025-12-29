@@ -40,6 +40,7 @@ export const AnalyticSamples: int = 60;
 export const WebGPURequirements: GPUFeatureName[] = [
     "timestamp-query",
     "indirect-first-instance",
+    "primitive-index",
 ];
 
 export const TextureFormats = {

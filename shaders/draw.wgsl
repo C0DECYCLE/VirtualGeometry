@@ -2,6 +2,8 @@
  * Copyright (C) - All Rights Reserved
  * Written by Noah Mattia Bussinger, February 2024
  */
+ 
+enable primitive_index;
 
 alias EntityIndex = u32;
 
@@ -60,11 +62,11 @@ const TRIANGLE_VERTICES: u32 = 3;
 
 fn getColor(mode: u32, triangle: u32, cluster: u32, entity: u32) -> vec3f {
     if (mode == 0) {
-        let x: f32 = f32(triangle) + 1;
+        let x: f32 = f32(entity + cluster + triangle) + 1;
         return fract(vec3f(x * 0.1443, x * 0.6841, x * 0.7323));
     }
     if (mode == 1) {
-        let x: f32 = f32(cluster) + 1;
+        let x: f32 = f32(entity + cluster) + 1;
         return fract(vec3f(x * 0.1443, x * 0.6841, x * 0.7323));
     }
     if (mode == 2) {
@@ -74,9 +76,13 @@ fn getColor(mode: u32, triangle: u32, cluster: u32, entity: u32) -> vec3f {
     return vec3f();
 }
 
-@fragment fn fs(in: VertexShaderOut) -> @location(0) vec4f {
+@fragment fn fs(in: VertexShaderOut, @builtin(primitive_index) pid: u32) -> @location(0) vec4f {
+    let x: f32 = f32(pid) + 1;
+    //return vec4f(fract(vec3f(x * 0.1443, x * 0.6841, x * 0.7323)), 1);
+    
     if (uniforms.viewMode == 3) {
         return vec4f(normalize(cross(dpdx(in.position), dpdy(in.position))) * 0.5 + 0.5, 1);
     }
     return vec4f(in.color, 1);
+    
 }

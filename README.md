@@ -2,8 +2,6 @@
 
 ## Resources
 
-### Nanite
-
 -   https://www.youtube.com/watch?v=eviSykqSUUw
 -   https://www.youtube.com/watch?v=NRnj_lnpORU&t=5027s
 -   https://www.youtube.com/watch?v=TMorJX3Nj6U&t=3982s
@@ -15,8 +13,6 @@
 -   https://www.elopezr.com/a-macro-view-of-nanite/
 -   https://www.notion.so/Brief-Analysis-of-Nanite-94be60f292434ba3ae62fa4bcf7d9379
 -   https://gamedev.stackexchange.com/questions/198454/how-does-unreal-engine-5s-nanite-work
-
-### Other
 
 -   https://discourse.threejs.org/t/virtually-geometric/28420/40
 -   https://jcgt.org/published/0012/02/01/
@@ -38,6 +34,12 @@
 -   https://jms55.github.io/posts/2024-11-14-virtual-geometry-bevy-0-15/
 -   https://github.com/Scthe/nanite-webgpu?tab=readme-ov-file
 -   https://chaoticbob.github.io/2024/01/24/mesh-shading-part-1.html
+
+-   https://www.sctheblog.com/blog/nanite-materials-notes/
+-   https://jms55.github.io/posts/2025-03-27-virtual-geometry-bevy-0-16/
+-   https://jglrxavpok.github.io/
+-   https://github.com/JolifantoBambla/webgpu-spd
+-   https://github.com/AIFanatic/three-nanite
 
 ## Idea
 
