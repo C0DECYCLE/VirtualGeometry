@@ -31,7 +31,7 @@ struct Entity {
     radius: f32
 };
 
-const QUEUE_CAPACITY: u32 = 1024 * 1024 * 32;
+const QUEUE_CAPACITY: u32 = 1024 * 1024; // * 32
 const QUEUE_UNUSED: u32 = 0xFFFFFFFF;
 
 struct Queue {
