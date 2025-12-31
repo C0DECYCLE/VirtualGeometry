@@ -7,7 +7,11 @@ import { assert } from "../utilities/utils.js";
 import { EmptyCallback, Nullable, float } from "../utils.type.js";
 import { Camera } from "./Camera.js";
 import { Controller } from "./Controller.js";
-import { PersistentThreadGroups, WebGPURequirements } from "../constants.js";
+import {
+    PersistentThreadGroups,
+    WebGPULimits,
+    WebGPURequirements,
+} from "../constants.js";
 import { GeometryHandler } from "../handlers/GeometryHandler.js";
 import { Analytics } from "./Analytics.js";
 import { UniformHandler } from "../handlers/UniformHandler.js";
@@ -126,6 +130,7 @@ export class Renderer {
     private async requestDevice(adapter: GPUAdapter): Promise<GPUDevice> {
         const device: Nullable<GPUDevice> = await adapter.requestDevice({
             requiredFeatures: WebGPURequirements,
+            requiredLimits: WebGPULimits,
         } as GPUDeviceDescriptor);
         assert(device);
         return device;
@@ -190,6 +195,15 @@ export class Renderer {
         this.gpuSync();
         this.execute();
         this.analytics.postFrame(now, this.handlers.entity, this.handlers.draw);
+        //this.handlers.instance.readback(); //debug
+        /*
+        if (!(window as any).asd) (window as any).asd = 0;
+        if ((window as any).asd > 100) {
+            assert(false); //debug
+        } else {
+            (window as any).asd++;
+        }
+        */
     }
 
     private gpuSync(): void {
@@ -208,13 +222,14 @@ export class Renderer {
         } as GPUObjectDescriptorBase);
         if (!this.isFrozen) {
             this.handlers.instance.setExecute(this.handlers.entity.count());
-            this.handlers.instance.resetQueueHeader();
+            this.handlers.instance.resetQueue();
             this.handlers.cluster.setExecute(PersistentThreadGroups);
             this.handlers.draw.setExecute(0);
             this.handlers.instance.execute(encoder);
             this.handlers.cluster.execute(encoder);
         }
         this.handlers.draw.execute(encoder);
+        //this.handlers.instance.resolve(encoder); //debug
         this.handlers.draw.resolve(encoder);
         this.analytics.resolve(encoder);
         this.device.queue.submit([encoder.finish()]);

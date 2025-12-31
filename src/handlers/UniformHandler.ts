@@ -44,12 +44,6 @@ export class UniformHandler {
 
     public gpuSync(device: GPUDevice): void {
         assert(this.buffer);
-        device.queue.writeBuffer(
-            this.buffer,
-            0,
-            this.arrayBuffer,
-            0,
-            this.arrayBuffer.byteLength,
-        );
+        device.queue.writeBuffer(this.buffer, 0, this.arrayBuffer);
     }
 }

@@ -54,7 +54,6 @@ export class DrawHandler {
     }
 
     private createReadbackBuffer(device: GPUDevice): GPUBuffer {
-        assert(this.indirectBuffer);
         return device.createBuffer({
             size: 1 * Bytes4,
             usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
