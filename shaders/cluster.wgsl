@@ -1,6 +1,7 @@
 /**
  * Copyright (C) - All Rights Reserved
  * Written by Noah Mattia Bussinger, February 2024
+ * Queue by Kavosh Jazar, December 2025
  */
 
 requires unrestricted_pointer_parameters;
@@ -136,7 +137,6 @@ const THRESHOLD_SCALE: f32 = 0.1;
     loop {
         var data: u32;
         if (!dequeue(&queue, &data)) { break; }
-        // if empty stop thread
         let drawPair: DrawPair = unpack_drawPair(data);
         let cluster: Cluster = clusters[drawPair.cluster];
         let entity: Entity = entities[drawPair.entity];
