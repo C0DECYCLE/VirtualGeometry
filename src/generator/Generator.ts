@@ -66,7 +66,7 @@ export class Generator {
 
     private static Buffer(
         label: string,
-        data: ArrayBuffer,
+        data: ArrayBuffer | Uint32Array | Float32Array,
         device: GPUDevice,
     ): GPUBuffer {
         const buffer: GPUBuffer = device.createBuffer({
@@ -74,7 +74,11 @@ export class Generator {
             size: data.byteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         } as GPUBufferDescriptor);
-        device.queue.writeBuffer(buffer, 0, data);
+        device.queue.writeBuffer(
+            buffer,
+            0,
+            data instanceof ArrayBuffer ? data : data.buffer,
+        );
         return buffer;
     }
 

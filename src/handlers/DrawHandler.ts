@@ -49,7 +49,7 @@ export class DrawHandler {
                 GPUBufferUsage.COPY_SRC |
                 GPUBufferUsage.COPY_DST,
         } as GPUBufferDescriptor);
-        device.queue.writeBuffer(buffer, 0, this.indirectData);
+        device.queue.writeBuffer(buffer, 0, this.indirectData.buffer);
         return buffer;
     }
 
@@ -90,9 +90,9 @@ export class DrawHandler {
         device.queue.writeBuffer(
             this.indirectBuffer,
             1 * Bytes4,
-            this.indirectData,
-            1,
-            1,
+            this.indirectData.buffer,
+            1 * Bytes4,
+            1 * Bytes4,
         );
     }
 

@@ -45,13 +45,13 @@ const TRIANGLE_VERTICES: u32 = 3;
 @group(0) @binding(1) var<storage, read> drawPairs: array<DrawPair>;
 @group(0) @binding(2) var<storage, read> entities: array<Entity>;
 @group(0) @binding(3) var<storage, read> triangles: array<VertexId>;
-@group(0) @binding(4) var<storage, read> vertecies: array<Vertex>;
+@group(0) @binding(4) var<storage, read> vertices: array<Vertex>;
 
 @vertex fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> VertexShaderOut {
     let drawPair: DrawPair = drawPairs[instanceIndex];
     let entity: Entity = entities[drawPair.entity];
     let vertexId: VertexId = triangles[drawPair.cluster * TRIANGLES_LIMIT * TRIANGLE_VERTICES + vertexIndex];
-    let vertex: Vertex = vertecies[vertexId];
+    let vertex: Vertex = vertices[vertexId];
     let position: vec3f = vertex.position + entity.position;
     var out: VertexShaderOut;
     out.clipspace = uniforms.viewProjection * vec4f(position, 1);

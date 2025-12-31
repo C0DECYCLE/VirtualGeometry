@@ -8,12 +8,7 @@ import { Nullable, int } from "../utils.type.js";
 import { Renderer } from "../components/Renderer.js";
 import { BindGroupHandler } from "./BindGroupHandler.js";
 import { PipelineHandler } from "./PipelineHandler.js";
-import {
-    Bytes4,
-    DrawPairLayout,
-    QueueHeaderLayout,
-    QueueLimit,
-} from "../constants.js";
+import { Bytes4, QueueHeaderLayout, QueueLimit } from "../constants.js";
 
 export class InstanceHandler {
     private readonly renderer: Renderer;
@@ -21,15 +16,13 @@ export class InstanceHandler {
     public readonly queueHeader: Uint32Array;
     public queueBuffer: Nullable<GPUBuffer>;
 
-    public readonly indirectData: Uint32Array;
-    public indirectBuffer: Nullable<GPUBuffer>;
+    private dispatchCount: int;
 
     public constructor(renderer: Renderer) {
         this.renderer = renderer;
         this.queueHeader = new Uint32Array(QueueHeaderLayout);
         this.queueBuffer = null;
-        this.indirectData = new Uint32Array([0, 1, 1]);
-        this.indirectBuffer = null;
+        this.dispatchCount = 1;
     }
 
     public prepare(): void {
@@ -37,36 +30,13 @@ export class InstanceHandler {
         assert(device);
         this.queueBuffer = device.createBuffer({
             label: "queue-buffer",
-            size: (QueueLimit * DrawPairLayout + QueueHeaderLayout) * Bytes4,
+            size: (QueueHeaderLayout + QueueLimit) * Bytes4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         } as GPUBufferDescriptor);
-        this.indirectBuffer = this.createIndirectBuffer(device);
-    }
-
-    private createIndirectBuffer(device: GPUDevice): GPUBuffer {
-        const buffer: GPUBuffer = device.createBuffer({
-            label: "instance-indirect-buffer",
-            size: this.indirectData.byteLength,
-            usage:
-                GPUBufferUsage.INDIRECT |
-                GPUBufferUsage.STORAGE |
-                GPUBufferUsage.COPY_DST,
-        } as GPUBufferDescriptor);
-        device.queue.writeBuffer(buffer, 0, this.indirectData);
-        return buffer;
     }
 
     public setExecute(workgroupDispatchCount: int): void {
-        const device: Nullable<GPUDevice> = this.renderer.device;
-        assert(device && this.indirectBuffer);
-        this.indirectData[0] = workgroupDispatchCount;
-        device.queue.writeBuffer(
-            this.indirectBuffer,
-            0,
-            this.indirectData,
-            0,
-            1,
-        );
+        this.dispatchCount = workgroupDispatchCount;
     }
 
     public resetQueueHeader(): void {
@@ -75,9 +45,9 @@ export class InstanceHandler {
         device.queue.writeBuffer(
             this.queueBuffer,
             0,
-            this.queueHeader,
+            this.queueHeader.buffer,
             0,
-            this.queueHeader.length,
+            this.queueHeader.byteLength,
         );
     }
 
@@ -85,7 +55,6 @@ export class InstanceHandler {
         const pipelines: PipelineHandler = this.renderer.handlers.pipeline;
         const bindGroups: BindGroupHandler = this.renderer.handlers.bindGroup;
         assert(pipelines.instance && bindGroups.instance);
-        assert(this.indirectBuffer);
         const pass: GPUComputePassEncoder = encoder.beginComputePass({
             label: "instance-compute-pass",
             timestampWrites:
@@ -93,7 +62,7 @@ export class InstanceHandler {
         } as GPUComputePassDescriptor);
         pass.setPipeline(pipelines.instance);
         pass.setBindGroup(0, bindGroups.instance);
-        pass.dispatchWorkgroupsIndirect(this.indirectBuffer, 0);
+        pass.dispatchWorkgroups(this.dispatchCount);
         pass.end();
     }
 }

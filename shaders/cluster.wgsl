@@ -45,8 +45,16 @@ struct Indirect {
 struct Queue {
     front: atomic<u32>,
     rear: atomic<u32>,
-    items: array<DrawPair>
+    items: array<u32>
 };
+
+fn enqueue(value: u32) {
+    queue.items[atomicAdd(&queue.rear, 1)] = value;
+}
+
+fn dequeue() -> u32 {
+    return queue.items[atomicAdd(&queue.front, 1)];
+}
 
 override WORKGROUP_SIZE: u32;
 const THRESHOLD_SCALE: f32 = 0.1;
@@ -60,7 +68,7 @@ const THRESHOLD_SCALE: f32 = 0.1;
 
 @compute @workgroup_size(WORKGROUP_SIZE) fn cs() {
     while(atomicLoad(&queue.front) < atomicLoad(&queue.rear)) {
-        let drawPair: DrawPair = dequeue();
+        let drawPair: DrawPair = unpack_drawPair(dequeue());
         let cluster: Cluster = clusters[drawPair.cluster];
         let entity: Entity = entities[drawPair.entity];
         let threshold: f32 = (length(entity.position - uniforms.cameraPosition) - entity.radius) * THRESHOLD_SCALE;
@@ -68,18 +76,21 @@ const THRESHOLD_SCALE: f32 = 0.1;
             drawPairsPush(drawPair);
         } else {
             for (var i: u32 = 0; i < cluster.children.length; i++) {
-                enqueue(DrawPair(drawPair.entity, cluster.children.ids[i]));
+                let nDrawPair: DrawPair = DrawPair(drawPair.entity, cluster.children.ids[i]);
+                enqueue(pack_drawPair(nDrawPair));
             }
         }
     }
 }
 
-fn enqueue(drawPair: DrawPair) {
-    queue.items[atomicAdd(&queue.rear, 1)] = drawPair;
+fn pack_drawPair(drawPair: DrawPair) -> u32 {
+    return (drawPair.entity << 16u) | (drawPair.cluster & 0xFFFFu);
 }
 
-fn dequeue() -> DrawPair {
-    return queue.items[atomicAdd(&queue.front, 1)];
+fn unpack_drawPair(packed: u32) -> DrawPair {
+    let entity = packed >> 16u;
+    let cluster = packed & 0xFFFFu;
+    return DrawPair(entity, cluster);
 }
 
 fn drawPairsPush(drawPair: DrawPair) {
