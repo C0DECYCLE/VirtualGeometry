@@ -15,6 +15,16 @@ struct DrawPair {
     cluster: ClusterId
 };
 
+fn pack_drawPair(drawPair: DrawPair) -> u32 {
+    return (drawPair.entity << 16) | (drawPair.cluster & 0xFFFF);
+}
+
+fn unpack_drawPair(packed: u32) -> DrawPair {
+    let entity = packed >> 16;
+    let cluster = packed & 0xFFFF;
+    return DrawPair(entity, cluster);
+}
+
 struct Entity {
     position: vec3f,
     root: ClusterId,
@@ -117,14 +127,4 @@ const WORKGROUP_SIZE: u32 = 256;
     let entity: Entity = entities[index];
     let drawPair: DrawPair = DrawPair(index, entity.root);
     enqueue(&queue, pack_drawPair(drawPair));
-}
-
-fn pack_drawPair(drawPair: DrawPair) -> u32 {
-    return (drawPair.entity << 16) | (drawPair.cluster & 0xFFFF);
-}
-
-fn unpack_drawPair(packed: u32) -> DrawPair {
-    let entity = packed >> 16;
-    let cluster = packed & 0xFFFF;
-    return DrawPair(entity, cluster);
 }

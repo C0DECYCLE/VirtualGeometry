@@ -15,13 +15,23 @@ struct DrawPair {
     cluster: ClusterId
 };
 
+fn pack_drawPair(drawPair: DrawPair) -> u32 {
+    return (drawPair.entity << 16) | (drawPair.cluster & 0xFFFF);
+}
+
+fn unpack_drawPair(packed: u32) -> DrawPair {
+    let entity = packed >> 16;
+    let cluster = packed & 0xFFFF;
+    return DrawPair(entity, cluster);
+}
+
 struct Uniforms {
     viewProjection: mat4x4f,
     viewMode: u32,
     cameraPosition: vec3f
 };
 
-struct Tree {
+struct Children {
     length: u32,
     ids: array<ClusterId, 2>
 }
@@ -29,7 +39,7 @@ struct Tree {
 struct Cluster {
     error: f32,
     parentError: f32,
-    children: Tree
+    children: Children
 };
 
 struct Entity {
@@ -139,36 +149,27 @@ const THRESHOLD_SCALE: f32 = 0.1;
 @compute @workgroup_size(WORKGROUP_SIZE) fn cs() {
     loop {
         var data: u32;
-        if (!dequeue(&queue, &data)) { break; }
+        if (!dequeue(&queue, &data)) { 
+            break; 
+        }
         let drawPair: DrawPair = unpack_drawPair(data);
         let cluster: Cluster = clusters[drawPair.cluster];
         let entity: Entity = entities[drawPair.entity];
-        let threshold: f32 = (length(entity.position - uniforms.cameraPosition) - entity.radius) * THRESHOLD_SCALE;
-        if ((cluster.parentError == 0 || cluster.parentError > threshold) && (cluster.children.length == 0 || cluster.error <= threshold)) {
-            drawPairsPush(drawPair);
-        } else {
-            for (var i: u32 = 0; i < cluster.children.length; i++) {
-                let nDrawPair: DrawPair = DrawPair(drawPair.entity, cluster.children.ids[i]);
-                loop { 
-                    if (enqueue(&queue, pack_drawPair(nDrawPair))) { 
-                        break; 
-                    } 
-                }
+        let distance: f32 = length(entity.position - uniforms.cameraPosition);
+        let threshold: f32 = (distance - entity.radius) * THRESHOLD_SCALE;
+        let parentOverThreshold: bool = cluster.parentError == 0 || cluster.parentError > threshold;
+        let clusterUnderThreshold: bool = cluster.children.length == 0 || cluster.error <= threshold;
+        if (parentOverThreshold && clusterUnderThreshold) {
+            drawPairs[atomicAdd(&indirect.instanceCount, 1)] = drawPair;
+            continue;
+        }
+        for (var i: u32 = 0; i < cluster.children.length; i++) {
+            let nDrawPair: DrawPair = DrawPair(drawPair.entity, cluster.children.ids[i]);
+            loop { 
+                if (enqueue(&queue, pack_drawPair(nDrawPair))) { 
+                    break; 
+                } 
             }
         }
     }
-}
-
-fn pack_drawPair(drawPair: DrawPair) -> u32 {
-    return (drawPair.entity << 16) | (drawPair.cluster & 0xFFFF);
-}
-
-fn unpack_drawPair(packed: u32) -> DrawPair {
-    let entity = packed >> 16;
-    let cluster = packed & 0xFFFF;
-    return DrawPair(entity, cluster);
-}
-
-fn drawPairsPush(drawPair: DrawPair) {
-    drawPairs[atomicAdd(&indirect.instanceCount, 1)] = drawPair;
 }

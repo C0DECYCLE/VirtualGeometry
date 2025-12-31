@@ -47,7 +47,10 @@ const TRIANGLE_VERTICES: u32 = 3;
 @group(0) @binding(3) var<storage, read> triangles: array<VertexId>;
 @group(0) @binding(4) var<storage, read> vertices: array<Vertex>;
 
-@vertex fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instanceIndex: u32) -> VertexShaderOut {
+@vertex fn vs(
+    @builtin(vertex_index) vertexIndex: u32, 
+    @builtin(instance_index) instanceIndex: u32
+) -> VertexShaderOut {
     let drawPair: DrawPair = drawPairs[instanceIndex];
     let entity: Entity = entities[drawPair.entity];
     let vertexId: VertexId = triangles[drawPair.cluster * TRIANGLES_LIMIT * TRIANGLE_VERTICES + vertexIndex];
@@ -77,9 +80,8 @@ fn getColor(mode: u32, triangle: u32, cluster: u32, entity: u32) -> vec3f {
 }
 
 @fragment fn fs(in: VertexShaderOut, @builtin(primitive_index) pid: u32) -> @location(0) vec4f {
-    let x: f32 = f32(pid) + 1;
+    //let x: f32 = f32(pid) + 1;
     //return vec4f(fract(vec3f(x * 0.1443, x * 0.6841, x * 0.7323)), 1);
-    
     if (uniforms.viewMode == 3) {
         return vec4f(normalize(cross(dpdx(in.position), dpdy(in.position))) * 0.5 + 0.5, 1);
     }
