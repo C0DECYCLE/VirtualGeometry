@@ -46,7 +46,7 @@ struct Indirect {
 };
 
 const QUEUE_CAPACITY: u32 = 1024 * 1024 * 32;
-const QUEUE_UNUSED: u32 = 0xFFFFFFFFu;
+const QUEUE_UNUSED: u32 = 0xFFFFFFFF;
 
 struct Queue {
     pad1: array<u32, 31>,
@@ -61,24 +61,26 @@ struct Queue {
     ring: array<atomic<u32>>,
 }
 
-fn size(q: ptr<storage, Queue, read_write>) -> i32 {
-    return atomicLoad(&(*q).count);
-}
-
 fn ensure_enqueue(q: ptr<storage, Queue, read_write>) -> bool {
-    if (atomicLoad(&(*q).count) >= i32(QUEUE_CAPACITY)) { return false; }
-
-    let prev = atomicAdd(&(*q).count, 1);
-    if (prev < i32(QUEUE_CAPACITY)) { return true; }
+    if (atomicLoad(&(*q).count) >= i32(QUEUE_CAPACITY)) { 
+        return false; 
+    }
+    let prev: i32 = atomicAdd(&(*q).count, 1);
+    if (prev < i32(QUEUE_CAPACITY)) { 
+        return true; 
+    }
     atomicSub(&(*q).count, 1);
     return false;
 }
 
 fn ensure_dequeue(q: ptr<storage, Queue, read_write>) -> bool {
-    if (atomicLoad(&(*q).count) <= 0) { return false; }
-
-    let prev = atomicSub(&(*q).count, 1);
-    if (prev > 0) { return true; }
+    if (atomicLoad(&(*q).count) <= 0) { 
+        return false; 
+    }
+    let prev: i32 = atomicSub(&(*q).count, 1);
+    if (prev > 0) { 
+        return true; 
+    }
     atomicAdd(&(*q).count, 1);
     return false;
 }
@@ -86,13 +88,15 @@ fn ensure_dequeue(q: ptr<storage, Queue, read_write>) -> bool {
 fn publish_slot(q: ptr<storage, Queue, read_write>, p: u32, data: u32) {
     loop {
         let r = atomicCompareExchangeWeak(&(*q).ring[p], QUEUE_UNUSED, data);
-        if (r.exchanged) { break; }
+        if (r.exchanged) { 
+            break; 
+        }
     }
 }
 
 fn consume_slot(q: ptr<storage, Queue, read_write>, p: u32) -> u32 {
     loop {
-        let val = atomicExchange(&(*q).ring[p], QUEUE_UNUSED);
+        let val: u32 = atomicExchange(&(*q).ring[p], QUEUE_UNUSED);
         if (val != QUEUE_UNUSED) {
             return val;
         }
@@ -100,26 +104,25 @@ fn consume_slot(q: ptr<storage, Queue, read_write>, p: u32) -> u32 {
 }
 
 fn enqueue(q: ptr<storage, Queue, read_write>, data: u32) -> bool {
-    if (data == QUEUE_UNUSED) { return false; }
-
-    if (!ensure_enqueue(q)) { return false; }
-
-    let pos = atomicAdd(&(*q).tail, 1u);
-    let p = pos % QUEUE_CAPACITY;
-
+    if (data == QUEUE_UNUSED) { 
+        return false; 
+    }
+    if (!ensure_enqueue(q)) { 
+        return false; 
+    }
+    let pos: u32 = atomicAdd(&(*q).tail, 1);
+    let p: u32 = pos % QUEUE_CAPACITY;
     publish_slot(q, p, data);
-
     return true;
 }
 
 fn dequeue(q: ptr<storage, Queue, read_write>, out_data: ptr<function, u32>) -> bool {
-    if (!ensure_dequeue(q)) { return false; }
-
-    let pos = atomicAdd(&(*q).head, 1u);
-    let p = pos % QUEUE_CAPACITY;
-
+    if (!ensure_dequeue(q)) { 
+        return false; 
+    }
+    let pos: u32 = atomicAdd(&(*q).head, 1);
+    let p: u32 = pos % QUEUE_CAPACITY;
     (*out_data) = consume_slot(q, p);
-
     return true;
 }
 
@@ -146,20 +149,23 @@ const THRESHOLD_SCALE: f32 = 0.1;
         } else {
             for (var i: u32 = 0; i < cluster.children.length; i++) {
                 let nDrawPair: DrawPair = DrawPair(drawPair.entity, cluster.children.ids[i]);
-                loop { if (enqueue(&queue, pack_drawPair(nDrawPair))) { break; } }
-                // if full retry until free slot, ideally this is never the case if the queue is big enough
+                loop { 
+                    if (enqueue(&queue, pack_drawPair(nDrawPair))) { 
+                        break; 
+                    } 
+                }
             }
         }
     }
 }
 
 fn pack_drawPair(drawPair: DrawPair) -> u32 {
-    return (drawPair.entity << 16u) | (drawPair.cluster & 0xFFFFu);
+    return (drawPair.entity << 16) | (drawPair.cluster & 0xFFFF);
 }
 
 fn unpack_drawPair(packed: u32) -> DrawPair {
-    let entity = packed >> 16u;
-    let cluster = packed & 0xFFFFu;
+    let entity = packed >> 16;
+    let cluster = packed & 0xFFFF;
     return DrawPair(entity, cluster);
 }
 
