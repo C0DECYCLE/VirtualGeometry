@@ -41,7 +41,7 @@
 -   https://github.com/JolifantoBambla/webgpu-spd
 -   https://github.com/AIFanatic/three-nanite
 
-## Idea
+## Idea (Partially outdated)
 
 ### Instance
 

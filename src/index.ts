@@ -18,7 +18,7 @@ await renderer.prepare();
 
 const n: int = 100; // 10
 const o: float = (n - 1) / 2;
-const s: float = 5;
+const s: float = 10;
 for (let i: int = 0; i < n; i++) {
     for (let j: int = 0; j < n; j++) {
         const entity: Entity = new Entity(

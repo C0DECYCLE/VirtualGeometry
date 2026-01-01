@@ -39,7 +39,7 @@ export const WebGPULimits: Record<string, GPUSize64> = {
 };
 
 export const TextureFormats = {
-    depth: "depth24plus",
+    depth: "depth32float",
 };
 
 export const ShaderPaths = {
