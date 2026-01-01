@@ -71,68 +71,68 @@ struct Queue {
     ring: array<atomic<u32>>,
 }
 
-fn ensure_enqueue(q: ptr<storage, Queue, read_write>) -> bool {
-    if (atomicLoad(&(*q).count) >= i32(QUEUE_CAPACITY)) { 
+fn ensure_enqueue() -> bool {
+    if (atomicLoad(&queue.count) >= i32(QUEUE_CAPACITY)) { 
         return false; 
     }
-    let prev: i32 = atomicAdd(&(*q).count, 1);
+    let prev: i32 = atomicAdd(&queue.count, 1);
     if (prev < i32(QUEUE_CAPACITY)) { 
         return true; 
     }
-    atomicSub(&(*q).count, 1);
+    atomicSub(&queue.count, 1);
     return false;
 }
 
-fn ensure_dequeue(q: ptr<storage, Queue, read_write>) -> bool {
-    if (atomicLoad(&(*q).count) <= 0) { 
+fn ensure_dequeue() -> bool {
+    if (atomicLoad(&queue.count) <= 0) { 
         return false; 
     }
-    let prev: i32 = atomicSub(&(*q).count, 1);
+    let prev: i32 = atomicSub(&queue.count, 1);
     if (prev > 0) { 
         return true; 
     }
-    atomicAdd(&(*q).count, 1);
+    atomicAdd(&queue.count, 1);
     return false;
 }
 
-fn publish_slot(q: ptr<storage, Queue, read_write>, p: u32, data: u32) {
+fn publish_slot(p: u32, data: u32) {
     loop {
-        let r = atomicCompareExchangeWeak(&(*q).ring[p], QUEUE_UNUSED, data);
+        let r = atomicCompareExchangeWeak(&queue.ring[p], QUEUE_UNUSED, data);
         if (r.exchanged) { 
             break; 
         }
     }
 }
 
-fn consume_slot(q: ptr<storage, Queue, read_write>, p: u32) -> u32 {
+fn consume_slot(p: u32) -> u32 {
     loop {
-        let val: u32 = atomicExchange(&(*q).ring[p], QUEUE_UNUSED);
+        let val: u32 = atomicExchange(&queue.ring[p], QUEUE_UNUSED);
         if (val != QUEUE_UNUSED) {
             return val;
         }
     }
 }
 
-fn enqueue(q: ptr<storage, Queue, read_write>, data: u32) -> bool {
+fn enqueue(data: u32) -> bool {
     if (data == QUEUE_UNUSED) { 
         return false; 
     }
-    if (!ensure_enqueue(q)) { 
+    if (!ensure_enqueue()) { 
         return false; 
     }
-    let pos: u32 = atomicAdd(&(*q).tail, 1);
+    let pos: u32 = atomicAdd(&queue.tail, 1);
     let p: u32 = pos % QUEUE_CAPACITY;
-    publish_slot(q, p, data);
+    publish_slot(p, data);
     return true;
 }
 
-fn dequeue(q: ptr<storage, Queue, read_write>, out_data: ptr<function, u32>) -> bool {
-    if (!ensure_dequeue(q)) { 
+fn dequeue(data: ptr<function, u32>) -> bool {
+    if (!ensure_dequeue()) { 
         return false; 
     }
-    let pos: u32 = atomicAdd(&(*q).head, 1);
+    let pos: u32 = atomicAdd(&queue.head, 1);
     let p: u32 = pos % QUEUE_CAPACITY;
-    (*out_data) = consume_slot(q, p);
+    (*data) = consume_slot(p);
     return true;
 }
 
@@ -149,7 +149,7 @@ const THRESHOLD_SCALE: f32 = 0.1;
 @compute @workgroup_size(WORKGROUP_SIZE) fn cs() {
     loop {
         var data: u32;
-        if (!dequeue(&queue, &data)) { 
+        if (!dequeue(&data)) { 
             break; 
         }
         let drawPair: DrawPair = unpack_drawPair(data);
@@ -165,8 +165,9 @@ const THRESHOLD_SCALE: f32 = 0.1;
         }
         for (var i: u32 = 0; i < cluster.children.length; i++) {
             let nDrawPair: DrawPair = DrawPair(drawPair.entity, cluster.children.ids[i]);
+            let packed: u32 = pack_drawPair(nDrawPair);
             loop { 
-                if (enqueue(&queue, pack_drawPair(nDrawPair))) { 
+                if (enqueue(packed)) { 
                     break; 
                 } 
             }
