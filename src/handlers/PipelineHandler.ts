@@ -6,6 +6,7 @@
 import {
     ClusterTrianglesLimit,
     PersistentThreadsPerGroup,
+    QueueLimit,
     TextureFormats,
 } from "../constants.js";
 import { assert } from "../utilities/utils.js";
@@ -46,6 +47,9 @@ export class PipelineHandler {
             compute: {
                 module: shader,
                 entryPoint: "cs",
+                constants: {
+                    QUEUE_CAPACITY: QueueLimit,
+                } as Record<string, number>,
             } as GPUProgrammableStage,
         } as GPUComputePipelineDescriptor);
     }
@@ -63,6 +67,7 @@ export class PipelineHandler {
                 module: shader,
                 entryPoint: "cs",
                 constants: {
+                    QUEUE_CAPACITY: QueueLimit,
                     WORKGROUP_SIZE: PersistentThreadsPerGroup,
                 } as Record<string, number>,
             } as GPUProgrammableStage,

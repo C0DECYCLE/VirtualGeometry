@@ -20,12 +20,10 @@ export const ClusterTrianglesLimit: int = 128;
 export const ClusterGroupingLimit: int = 4;
 export const EntityLimit: int = 10_000;
 
-// 32 * 256 = 8192 Persistent Threads = Best Performance On M4 Pro
-export const PersistentThreadGroups: int = 32;
+export const PersistentThreadGroups: int = 64;
 export const PersistentThreadsPerGroup: int = 256;
 
-// Assert > EntityLimit * Max Clusters Of Geometries !
-export const QueueLimit: int = 1024 * 1024; // * 32
+export const QueueLimit: int = 1024 * 128; // 1024 * 1024 * 32
 export const DrawPairLimit: int = 100_000;
 
 export const AnalyticSamples: int = 60;

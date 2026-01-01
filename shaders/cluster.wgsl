@@ -4,8 +4,6 @@
  * Queue by Kavosh Jazar, December 2025
  */
 
-requires unrestricted_pointer_parameters;
-
 alias EntityIndex = u32;
 
 alias ClusterId = u32;
@@ -55,7 +53,7 @@ struct Indirect {
     firstInstance: u32
 };
 
-const QUEUE_CAPACITY: u32 = 1024 * 1024; // * 32
+override QUEUE_CAPACITY: u32;
 const QUEUE_UNUSED: u32 = 0xFFFFFFFF;
 
 struct Queue {
@@ -166,11 +164,7 @@ const THRESHOLD_SCALE: f32 = 0.1;
         for (var i: u32 = 0; i < cluster.children.length; i++) {
             let nDrawPair: DrawPair = DrawPair(drawPair.entity, cluster.children.ids[i]);
             let packed: u32 = pack_drawPair(nDrawPair);
-            loop { 
-                if (enqueue(packed)) { 
-                    break; 
-                } 
-            }
+            enqueue(packed);
         }
     }
 }
